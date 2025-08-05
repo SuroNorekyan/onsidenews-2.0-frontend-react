@@ -1,24 +1,32 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { useState } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Header from "./components/ui/Header";
+import HomePage from "./components/pages";
+import PostPage from "./components/pages/PostPage";
 
 function App() {
+  const [darkMode, setDarkMode] = useState(false);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div
+      className={
+        darkMode ? "dark bg-gray-900 text-white" : "bg-white text-black"
+      }
+    >
+      <Router>
+        <Header
+          darkMode={darkMode}
+          toggleDarkMode={() => setDarkMode(!darkMode)}
+        />
+
+        <main className="pt-4 min-h-screen">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/posts/:id" element={<PostPage />} />
+            {/* Future: <Route path="/top-posts" element={<TopPostsPage />} /> */}
+          </Routes>
+        </main>
+      </Router>
     </div>
   );
 }
