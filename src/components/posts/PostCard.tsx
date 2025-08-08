@@ -1,4 +1,6 @@
 import { useNavigate } from "react-router-dom";
+import { Clock, Eye } from "lucide-react";
+import { FC } from "react";
 
 interface PostCardProps {
   post: {
@@ -7,31 +9,52 @@ interface PostCardProps {
     content: string;
     imageUrl: string | null;
     createdAt: string;
+    viewsCount: number;
   };
+  darkMode?: boolean;
 }
 
-export default function PostCard({ post }: PostCardProps) {
+const PostCard: FC<PostCardProps> = ({ post, darkMode }: PostCardProps) => {
   const navigate = useNavigate();
+
+  const cardBg = darkMode ? "bg-gray-800" : "bg-white";
+  const titleColor = darkMode ? "text-white" : "text-black";
+  const textColor = darkMode ? "text-gray-200" : "text-gray-600";
+  const metaColor = darkMode ? "text-gray-400" : "text-gray-400";
 
   return (
     <div
-      className="bg-white rounded-lg shadow hover:shadow-lg cursor-pointer transition overflow-hidden"
+      className={`${cardBg} rounded-lg shadow hover:shadow-lg dark:hover:bg-gray-700 dark:bg-gray-800 cursor-pointer transition overflow-hidden`}
       onClick={() => navigate(`/posts/${post.postId}`)}
     >
-      {post.imageUrl && (
+      <div>
+        {post.imageUrl && (
         <img
           src={post.imageUrl}
           alt={post.title}
-          className="w-full h-48 object-cover"
+          className="w-full h-48 object-cover object-[50%_30%]"
         />
       )}
+      </div>
+      
       <div className="p-4">
-        <h2 className="text-lg font-bold">{post.title}</h2>
-        <p className="text-sm text-gray-600">{post.content.slice(0, 50)}...</p>
-        <p className="text-xs text-gray-400 mt-2">
-          {new Date(post.createdAt).toLocaleDateString()}
-        </p>
+        <h2 className={`text-lg font-bold ${titleColor}`}>{post.title}</h2>
+        <p className={`text-sm ${textColor}`}>{post.content.slice(0, 50)}...</p>
+
+        <div
+          className={`flex items-center justify-between mt-2 text-xs ${metaColor}`}
+        >
+          <div className="flex items-center gap-1">
+            <Clock size={14} />
+            <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Eye size={14} />
+            <span>{post.viewsCount}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
-}
+};
+export default PostCard;

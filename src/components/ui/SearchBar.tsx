@@ -71,8 +71,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
       <Button
         icon={<Search size={18} />}
         padding="px-3"
-        bgColor="bg-blue-600"
-        hoverBgColor="hover:bg-blue-700"
+        bgColor="bg-red-500"
+        hoverBgColor="hover:bg-red-700"
         textColor="text-white"
       />
     </div>

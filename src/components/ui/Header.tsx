@@ -8,6 +8,7 @@ import MainLogo from "../shared/MainLogo";
 import SearchBar from "./SearchBar";
 import FilterMenu from "./FilterMenu";
 import MobileMenu from "./MobileMenu";
+import { Link } from "react-router-dom";
 
 interface Props {
   darkMode: boolean;
@@ -23,15 +24,19 @@ export default function Header({ darkMode, toggleDarkMode }: Props) {
     <div className="relative z-50 overflow-visible">
       <header
         className={clsx(
-          "w-full px-4 py-2 shadow-md transition-colors duration-300 relative",
-          darkMode ? "bg-gray-900 text-white" : "bg-white text-gray-900"
+          "w-full px-4 py-2 ",
+          darkMode
+            ? "bg-gray-900 text-white shadow-[0_2px_4px_rgba(255,255,255,0.1)]"
+            : "bg-white text-gray-900 shadow-md"
         )}
       >
         {/* Desktop View */}
         <div className="hidden md:flex items-center justify-between gap-6 relative">
           {/* Logo */}
           <div className="w-40 flex flex-col items-center justify-center">
-            <MainLogo />
+            <Link to="/" className="cursor-pointer">
+              <MainLogo />
+            </Link>
           </div>
 
           {/* Search Bar */}
@@ -86,7 +91,9 @@ export default function Header({ darkMode, toggleDarkMode }: Props) {
           </div>
 
           <div className="w-40 flex flex-col items-center justify-center">
-            <MainLogo />
+            <Link to="/" className="cursor-pointer">
+              <MainLogo />
+            </Link>
           </div>
 
           <Button
@@ -129,7 +136,7 @@ export default function Header({ darkMode, toggleDarkMode }: Props) {
       {/* Dark Mode Toggle (fixed bottom-left) */}
       <div className="fixed bottom-2 left-2 z-50">
         <Button
-          icon={darkMode ? <Sun size={18} /> : <Moon size={18} />}
+          icon={darkMode ? <Sun size={18} color="white" /> : <Moon size={18} />}
           onClick={toggleDarkMode}
           padding="p-2"
           rounded="rounded-full"

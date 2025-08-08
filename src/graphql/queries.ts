@@ -8,6 +8,7 @@ export const GET_ALL_POSTS = gql`
       content
       imageUrl
       createdAt
+      viewsCount
     }
   }
 `;
@@ -20,6 +21,7 @@ export const GET_SINGLE_POST = gql`
       content
       imageUrl
       createdAt
+      viewsCount
     }
   }
 `;

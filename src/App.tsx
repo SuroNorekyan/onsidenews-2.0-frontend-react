@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from "./components/ui/Header";
-import HomePage from "./components/pages";
 import PostPage from "./components/pages/PostPage";
+import HomePage from "./components/pages";
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
@@ -21,7 +21,7 @@ function App() {
 
         <main className="pt-4 min-h-screen">
           <Routes>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/" element={<HomePage darkMode = {darkMode} />} />
             <Route path="/posts/:id" element={<PostPage />} />
             {/* Future: <Route path="/top-posts" element={<TopPostsPage />} /> */}
           </Routes>
