@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from "./components/ui/Header";
 import PostPage from "./components/pages/PostPage";
 import HomePage from "./components/pages";
+import Footer from "./components/ui/Footer";
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
@@ -25,6 +26,7 @@ function App() {
             <Route path="/posts/:id" element={<PostPage />} />
             {/* Future: <Route path="/top-posts" element={<TopPostsPage />} /> */}
           </Routes>
+          <Footer darkMode={true}/>
         </main>
       </Router>
     </div>
