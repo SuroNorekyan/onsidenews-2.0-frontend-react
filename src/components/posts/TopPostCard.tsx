@@ -23,7 +23,7 @@ export default function TopPostCard({ post }: TopPostCardProps) {
       <img
         src={post.imageUrl || "/placeholder.jpg"}
         alt={post.title}
-        className="w-16 h-12 object-cover object-center rounded"
+        className="w-28 h-21 object-cover object-center rounded"
       />
       <div className="flex flex-col justify-between">
         <div className={`text-sm font-medium line-clamp-2 text-black dark:text-white`}>

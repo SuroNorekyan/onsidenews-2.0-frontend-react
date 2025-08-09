@@ -43,7 +43,7 @@ export default function TopPostsPage({ darkMode }: { darkMode?: boolean }) {
       p.set("page", String(nextPage));
       return p;
     });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    
   };
 
   if (loading && !topData) return <div className="p-10">Loading...</div>;

@@ -45,7 +45,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           icon={<Filter size={18} />}
           onClick={() => setFilterOpen(!filterOpen)}
           padding="px-3 py-2"
-          hoverBgColor="hover:bg-gray-700"
+          hoverBgColor="hover:bg-gray-400"
           darkMode={darkMode}
         />
         {filterOpen && (
@@ -59,7 +59,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
               {dropdownItems.map((item) => (
                 <li
                   key={item}
-                  className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                  className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-400 cursor-pointer"
                 >
                   {item}
                 </li>

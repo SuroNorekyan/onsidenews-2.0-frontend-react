@@ -20,7 +20,13 @@ export default function Footer({ darkMode }: Props) {
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start justify-between gap-6">
         {/* Logo + Intro */}
         <div className="flex flex-col items-start text-left max-w-md">
-          <Link to="/" className="w-32 mb-3">
+          <Link
+            to="/"
+            className="w-32 mb-3"
+            onClick={() => {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          >
             {/* Force white text in light mode by overriding titleColor */}
             <MainLogo
               titleColor="text-white"
@@ -28,6 +34,7 @@ export default function Footer({ darkMode }: Props) {
               center={false} // removes center alignment → no indent
             />
           </Link>
+
           <p className="text-sm leading-relaxed">
             OnsideNews-ը ֆուտբոլային լուրեր, վերլուծություններ և հոդվածներ
             տրամադրող հարթակ է, որտեղ կարող եք գտնել ամենաթարմ ֆուտբոլային
