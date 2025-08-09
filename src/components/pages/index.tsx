@@ -40,7 +40,7 @@ const HomePage: FC<HomePageProps> = ({ darkMode }) => {
       p.set("page", String(nextPage));
       return p;
     });
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    
   };
 
   if (loading && !data) return <div className="p-10">Loading...</div>;

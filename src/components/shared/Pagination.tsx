@@ -47,6 +47,18 @@ const Pagination: FC<PaginationProps> = ({
     [currentPage, totalPages, siblingCount]
   );
 
+  const scrollToTop = () => {
+    // Small delay ensures scroll happens after DOM updates
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 50);
+  };
+
+  const handlePageChange = (page: number) => {
+    onPageChange(page);
+    scrollToTop();
+  };
+
   if (totalPages <= 1) return null;
 
   return (
@@ -59,7 +71,7 @@ const Pagination: FC<PaginationProps> = ({
         <Button
           text="« First"
           disabled={currentPage === 1}
-          onClick={() => onPageChange(1)}
+          onClick={() => handlePageChange(1)}
           padding="px-3 py-1"
           bgColor="bg-transparent"
           hoverBgColor="hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -69,7 +81,7 @@ const Pagination: FC<PaginationProps> = ({
         <Button
           text="‹ Prev"
           disabled={currentPage === 1}
-          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+          onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
           padding="px-3 py-1"
           bgColor="bg-transparent"
           hoverBgColor="hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -104,7 +116,7 @@ const Pagination: FC<PaginationProps> = ({
                   : "hover:bg-gray-200 dark:hover:bg-gray-700"
               }
               padding="px-3 py-1"
-              onClick={() => onPageChange(p)}
+              onClick={() => handlePageChange(p)}
               aria-current={p === currentPage ? "page" : undefined}
               aria-label={`Page ${p}`}
             />
@@ -114,7 +126,7 @@ const Pagination: FC<PaginationProps> = ({
         <Button
           text="Next ›"
           disabled={currentPage === totalPages}
-          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+          onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
           padding="px-3 py-1"
           bgColor="bg-transparent"
           hoverBgColor="hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -124,7 +136,7 @@ const Pagination: FC<PaginationProps> = ({
         <Button
           text="Last »"
           disabled={currentPage === totalPages}
-          onClick={() => onPageChange(totalPages)}
+          onClick={() => handlePageChange(totalPages)}
           padding="px-3 py-1"
           bgColor="bg-transparent"
           hoverBgColor="hover:bg-gray-200 dark:hover:bg-gray-700"

@@ -1,4 +1,5 @@
-import React from "react";
+// components/Header/FilterMenu.tsx
+import React, { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import { ChevronDown } from "lucide-react";
 import Button from "../shared/Button";
@@ -24,14 +25,49 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
   hoverBgColor = "hover:bg-gray-300",
   hoverTextColor = "",
 }) => {
+  const [canHover, setCanHover] = useState(false);
+  const closeTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // Detect if device supports hover (desktop)
+    if (typeof window !== "undefined" && window.matchMedia) {
+      try {
+        setCanHover(window.matchMedia("(hover: hover)").matches);
+      } catch {
+        setCanHover(false);
+      }
+    }
+  }, []);
+
+  const clearCloseTimeout = () => {
+    if (closeTimeoutRef.current !== null) {
+      window.clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  };
+
+  const scheduleClose = (delay = 150) => {
+    clearCloseTimeout();
+    closeTimeoutRef.current = window.setTimeout(() => {
+      onToggle(null);
+      closeTimeoutRef.current = null;
+    }, delay);
+  };
+
+  const openNow = (key: string) => {
+    clearCloseTimeout();
+    onToggle(key);
+  };
+
   return (
     <div className="flex items-center gap-2 relative">
       {Object.entries(dropdowns).map(([key, items]) => (
         <div
           key={key}
-          className="relative group"
-          onMouseEnter={() => onToggle(key)}
-          onMouseLeave={() => onToggle(null)}
+          // Put hover handlers on the wrapper; also we'll add them to the menu itself below
+          className="relative"
+          onMouseEnter={canHover ? () => openNow(key) : undefined}
+          onMouseLeave={canHover ? () => scheduleClose() : undefined}
         >
           <Button
             text={key}
@@ -46,21 +82,39 @@ const FilterMenu: React.FC<FilterMenuProps> = ({
             hoverBgColor={hoverBgColor}
             hoverTextColor={hoverTextColor}
             darkMode={darkMode}
-            darkModeClasses="dark:bg-gray-200 dark:hover:bg-gray-700"
-            onClick={() => onToggle(key)}
+            darkModeClasses="dark:bg-gray-200 dark:hover:bg-gray-400"
+            onClick={() => {
+              // On touch devices we toggle by click. On hover-capable devices clicking also toggles.
+              clearCloseTimeout();
+              onToggle(openDropdown === key ? null : key);
+            }}
           />
+
           {openDropdown === key && (
             <div
+              // ensure dropdown aligns with the button and is inside the same wrapper
               className={clsx(
-                "absolute top-full mt-2 w-48 rounded-md shadow-lg z-20 transition-all duration-300",
+                "absolute left-0 top-full mt-1 w-48 rounded-md shadow-lg z-50 transition-all duration-150",
                 darkMode ? "bg-gray-800 text-white" : "bg-white text-gray-900"
               )}
+              // also keep it open while hovering over the menu itself
+              onMouseEnter={canHover ? () => openNow(key) : undefined}
+              onMouseLeave={canHover ? () => scheduleClose() : undefined}
             >
-              <ul className="py-2 text-sm">
+              <ul className="py-1 text-sm">
                 {items.map((item) => (
                   <li
                     key={item}
-                    className="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                    // small padding + hover states that respect dark mode
+                    className={clsx(
+                      "px-4 py-2 cursor-pointer select-none",
+                      "hover:bg-gray-100 dark:hover:bg-gray-700"
+                    )}
+                    onClick={() => {
+                      // close after selecting. Replace with navigation or handler as needed.
+                      onToggle(null);
+                      // TODO: add your item click handler here (navigate / filter / dispatch)
+                    }}
                   >
                     {item}
                   </li>

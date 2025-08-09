@@ -21,7 +21,7 @@ function App() {
           darkMode={darkMode}
           toggleDarkMode={() => setDarkMode(!darkMode)}
         />
-        <main className="pt-4 min-h-screen">
+        <main className="pt-20 min-h-screen">
           <Routes>
             <Route path="/" element={<HomePage darkMode={darkMode} />} />
             <Route path="/posts/:id" element={<PostPage />} />

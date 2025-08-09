@@ -21,7 +21,7 @@ export default function Header({ darkMode, toggleDarkMode }: Props) {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   return (
-    <div className="relative z-50 overflow-visible">
+    <div className="fixed top-0 left-0 w-full z-50 overflow-visible">
       <header
         className={clsx(
           "w-full px-4 py-2 ",
@@ -34,7 +34,13 @@ export default function Header({ darkMode, toggleDarkMode }: Props) {
         <div className="hidden md:flex items-center justify-between gap-6 relative">
           {/* Logo */}
           <div className="w-40 flex flex-col items-center justify-center">
-            <Link to="/" className="cursor-pointer">
+            <Link
+              to="/"
+              className="w-32 mb-3"
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+            >
               <MainLogo />
             </Link>
           </div>
