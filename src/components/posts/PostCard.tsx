@@ -1,10 +1,25 @@
 import { useNavigate } from "react-router-dom";
 import { Clock, Eye } from "lucide-react";
 import { FC } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+// Plain-text teaser from markdown (no syntax chars)
+function markdownToText(md: string) {
+  return (md || "")
+    .replace(/```[\s\S]*?```/g, "") // fenced code blocks
+    .replace(/`[^`]*`/g, "") // inline code
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, "") // images
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links -> text
+    .replace(/^[#>*+-]\s+/gm, "") // list/quote/heading markers
+    .replace(/[_*~`>#-]/g, "") // leftover md chars
+    .replace(/\n+/g, " ")
+    .trim();
+}
 
 interface PostCardProps {
   post: {
-    postId: string;
+    postId: number | string;
     title: string;
     content: string;
     imageUrl: string | null;
@@ -14,32 +29,38 @@ interface PostCardProps {
   darkMode?: boolean;
 }
 
-const PostCard: FC<PostCardProps> = ({ post, darkMode }: PostCardProps) => {
+const PostCard: FC<PostCardProps> = ({ post, darkMode }) => {
   const navigate = useNavigate();
 
   const cardBg = darkMode ? "bg-gray-800" : "bg-white";
   const titleColor = darkMode ? "text-white" : "text-black";
   const textColor = darkMode ? "text-gray-200" : "text-gray-600";
-  const metaColor = darkMode ? "text-gray-400" : "text-gray-400";
+  const metaColor = "text-gray-400";
+
+  const teaser = markdownToText(post.content).slice(0, 140);
 
   return (
     <div
-      className={`${cardBg} rounded-lg shadow hover:shadow-lg dark:hover:bg-gray-700 dark:bg-gray-800 cursor-pointer transition overflow-hidden`}
+      className={`${cardBg} rounded-lg shadow hover:shadow-lg dark:hover:bg-gray-700 cursor-pointer transition overflow-hidden`}
       onClick={() => navigate(`/posts/${post.postId}`)}
     >
-      <div>
-        {post.imageUrl && (
+      {post.imageUrl && (
         <img
           src={post.imageUrl}
           alt={post.title}
           className="w-full h-48 object-cover object-[50%_30%]"
         />
       )}
-      </div>
-      
+
       <div className="p-4">
         <h2 className={`text-lg font-bold ${titleColor}`}>{post.title}</h2>
-        <p className={`text-sm ${textColor}`}>{post.content.slice(0, 50)}...</p>
+
+        {/* clean teaser text */}
+        <div className={`text-sm ${textColor} line-clamp-3`}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {post.content || ""}
+          </ReactMarkdown>
+        </div>
 
         <div
           className={`flex items-center justify-between mt-2 text-xs ${metaColor}`}
@@ -57,4 +78,5 @@ const PostCard: FC<PostCardProps> = ({ post, darkMode }: PostCardProps) => {
     </div>
   );
 };
+
 export default PostCard;

@@ -6,6 +6,9 @@ import PostPage from "./components/pages/PostPage";
 import HomePage from "./components/pages";
 import Footer from "./components/ui/Footer";
 import TopPostsPage from "./components/pages/TopPostsPage";
+import AdminRoute from "./auth/AdminRoute";
+import AdminDashboard from "./components/pages/AdminDashboard";
+import AdminLogin from "./components/pages/AdminLogin";
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
@@ -29,8 +32,19 @@ function App() {
               path="/top-posts"
               element={<TopPostsPage darkMode={darkMode} />}
             />
+
+            {/* Admin */}
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
           </Routes>
-          <Footer darkMode={true}/>
+          <Footer darkMode={true} />
         </main>
       </Router>
     </div>
