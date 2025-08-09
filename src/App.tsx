@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from "./components/ui/Header";
 import PostPage from "./components/pages/PostPage";
 import HomePage from "./components/pages";
+import Footer from "./components/ui/Footer";
 import TopPostsPage from "./components/pages/TopPostsPage";
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
               element={<TopPostsPage darkMode={darkMode} />}
             />
           </Routes>
+          <Footer darkMode={true}/>
         </main>
       </Router>
     </div>
