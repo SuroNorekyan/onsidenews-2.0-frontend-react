@@ -99,10 +99,10 @@ export default function PostPage() {
   };
 
   return (
-    <div className="px-4 py-8 max-w-6xl mx-auto">
+    <div className="px-4 py-16 max-w-6xl mx-auto md:py-4">
       <div className="flex flex-col lg:flex-row gap-8">
-        <div className="w-full lg:w-2/3">
-          <h1 className="text-3xl font-bold mb-2">{post.title}</h1>
+        <div className="w-full lg:w-2/3 ">
+          <h1 className="text-3xl font-bold mb-2 break-words">{post.title}</h1>
 
           <div className="flex items-center text-gray-500 mb-6">
             <Clock className="w-4 h-4 mr-2" />
@@ -110,22 +110,22 @@ export default function PostPage() {
           </div>
 
           {post.imageUrl && (
-            <div className="w-full h-80 rounded mb-6 overflow-hidden">
+            <div className="w-full h-200 rounded mb-6 overflow-hidden">
               <img
                 src={post.imageUrl}
                 alt={post.title}
-                className="w-full h-80 object-cover object-[50%_10%]"
+                className="w-full h-200 object-cover object-[50%_10%]"
               />
             </div>
           )}
 
           {/* Markdown-rendered content with pretty typography */}
           <div
-            className="prose prose-lg dark:prose-invert max-w-none
-                          prose-headings:font-semibold
-                          prose-a:text-blue-600 hover:prose-a:text-blue-700
-                          prose-blockquote:border-l-4
-                          prose-img:rounded-xl prose-hr:my-6"
+            className="prose prose-lg dark:prose-invert max-w-none break-words
+             prose-headings:font-semibold
+             prose-a:text-blue-600 hover:prose-a:text-blue-700
+             prose-blockquote:border-l-4
+             prose-img:rounded-xl prose-hr:my-6"
           >
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}

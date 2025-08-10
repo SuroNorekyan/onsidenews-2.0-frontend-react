@@ -7,6 +7,7 @@ import remarkGfm from "remark-gfm";
 // Plain-text teaser from markdown (no syntax chars)
 function markdownToText(md: string) {
   return (md || "")
+    .replace(/<[^>]*>/g, "") // remove all HTML tags
     .replace(/```[\s\S]*?```/g, "") // fenced code blocks
     .replace(/`[^`]*`/g, "") // inline code
     .replace(/!\[[^\]]*\]\([^)]+\)/g, "") // images
@@ -37,7 +38,27 @@ const PostCard: FC<PostCardProps> = ({ post, darkMode }) => {
   const textColor = darkMode ? "text-gray-200" : "text-gray-600";
   const metaColor = "text-gray-400";
 
-  const teaser = markdownToText(post.content).slice(0, 140);
+  const cleanText = markdownToText(post.content);
+  const teaser =
+    cleanText.length > 140 ? cleanText.slice(0, 140) + "…" : cleanText;
+
+  const safeTitle = protectShortWords(
+    post.title.length > 70 ? post.title.slice(0, 70) + "…" : post.title
+  );
+
+  const safeTeaser = protectShortWords(teaser);
+
+  function protectShortWords(text: string, minLength = 15) {
+    return text
+      .split(/\s+/)
+      .map((word) => {
+        if (word.length < minLength) {
+          return word.replace(/ /g, "\u00A0"); // Non-breaking for short words
+        }
+        return word; // Keep long words normal so browser can wrap
+      })
+      .join(" ");
+  }
 
   return (
     <div
@@ -53,13 +74,18 @@ const PostCard: FC<PostCardProps> = ({ post, darkMode }) => {
       )}
 
       <div className="p-4">
-        <h2 className={`text-lg font-bold ${titleColor}`}>{post.title}</h2>
+        <h2
+          className={`text-lg font-bold ${titleColor}  break-words overflow-hidden text-ellipsis prevent-short-break`}
+          title={post.title}
+        >
+          {safeTitle}
+        </h2>
 
         {/* clean teaser text */}
-        <div className={`text-sm ${textColor} line-clamp-3`}>
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {post.content || ""}
-          </ReactMarkdown>
+        <div
+          className={`text-sm ${textColor} break-words line-clamp-3 overflow-hidden text-ellipsis prevent-short-break`}
+        >
+          {safeTeaser}
         </div>
 
         <div

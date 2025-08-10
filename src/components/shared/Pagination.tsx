@@ -1,6 +1,7 @@
 // src/components/shared/Pagination.tsx
 import { FC, useMemo } from "react";
 import Button from "./Button";
+import { scrollToTop } from "../../utils/shared/scrollBehaviour";
 
 interface PaginationProps {
   currentPage: number;
@@ -46,13 +47,6 @@ const Pagination: FC<PaginationProps> = ({
     () => makePageRange(currentPage, totalPages, siblingCount),
     [currentPage, totalPages, siblingCount]
   );
-
-  const scrollToTop = () => {
-    // Small delay ensures scroll happens after DOM updates
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }, 50);
-  };
 
   const handlePageChange = (page: number) => {
     onPageChange(page);
@@ -126,7 +120,9 @@ const Pagination: FC<PaginationProps> = ({
         <Button
           text="Next ›"
           disabled={currentPage === totalPages}
-          onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+          onClick={() =>
+            handlePageChange(Math.min(totalPages, currentPage + 1))
+          }
           padding="px-3 py-1"
           bgColor="bg-transparent"
           hoverBgColor="hover:bg-gray-200 dark:hover:bg-gray-700"

@@ -20,16 +20,24 @@ export default function TopPostCard({ post }: TopPostCardProps) {
       className={`flex gap-2 items-start cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 p-2 rounded`}
       onClick={() => navigate(`/posts/${post.postId}`)}
     >
-      <img
+      <div className="w-1/3 aspect-[5/3] overflow-hidden rounded">
+        <img
         src={post.imageUrl || "/placeholder.jpg"}
-        alt={post.title}
-        className="w-28 h-21 object-cover object-center rounded"
+        alt={post.title.slice(0,5) + "..."} 
+        className=" w-full h-full object-cover object-[50%_10%] rounded " //break-all overflow-hidden text-ellipsis
       />
+      </div>
       <div className="flex flex-col justify-between">
-        <div className={`text-sm font-medium line-clamp-2 text-black dark:text-white`}>
+        <div
+          className="text-sm font-medium text-black dark:text-white break-all overflow-hidden text-ellipsis line-clamp-2"
+          title={post.title} // optional: show full text on hover
+        >
           {post.title}
         </div>
-        <div className={`flex items-center gap-4 text-xs mt-1 text-gray-500 dark:text-gray-400`}>
+
+        <div
+          className={`flex items-center gap-4 text-xs mt-1 text-gray-500 dark:text-gray-400`}
+        >
           {post.createdAt && (
             <div className="flex items-center gap-1">
               <Clock size={14} />
