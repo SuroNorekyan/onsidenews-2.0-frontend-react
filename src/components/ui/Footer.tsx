@@ -2,6 +2,7 @@ import { Facebook, Instagram, Send } from "lucide-react"; // Send icon looks lik
 import clsx from "clsx";
 import MainLogo from "../shared/MainLogo";
 import { Link } from "react-router-dom";
+import { scrollToTop } from "../../utils/shared/scrollBehaviour";
 
 interface Props {
   darkMode: boolean;
@@ -24,7 +25,7 @@ export default function Footer({ darkMode }: Props) {
             to="/"
             className="w-32 mb-3"
             onClick={() => {
-              window.scrollTo({ top: 0, behavior: "smooth" });
+              scrollToTop();
             }}
           >
             {/* Force white text in light mode by overriding titleColor */}

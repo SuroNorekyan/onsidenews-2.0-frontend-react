@@ -43,7 +43,6 @@ export default function TopPostsPage({ darkMode }: { darkMode?: boolean }) {
       p.set("page", String(nextPage));
       return p;
     });
-    
   };
 
   if (loading && !topData) return <div className="p-10">Loading...</div>;
@@ -51,7 +50,7 @@ export default function TopPostsPage({ darkMode }: { darkMode?: boolean }) {
     return <div className="p-10 text-red-500">Error: {error.message}</div>;
 
   return (
-    <div className="px-4 py-8 max-w-7xl mx-auto">
+    <div className="px-4 py-16 max-w-7xl mx-auto md:py-8">
       <div className="flex flex-col lg:flex-row gap-6">
         {/* LEFT: Top posts */}
         <div className="flex-1 lg:w-2/3">

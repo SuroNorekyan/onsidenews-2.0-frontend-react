@@ -9,6 +9,7 @@ import SearchBar from "./SearchBar";
 import FilterMenu from "./FilterMenu";
 import MobileMenu from "./MobileMenu";
 import { Link } from "react-router-dom";
+import { scrollToTop } from "../../utils/shared/scrollBehaviour";
 
 interface Props {
   darkMode: boolean;
@@ -38,7 +39,7 @@ export default function Header({ darkMode, toggleDarkMode }: Props) {
               to="/"
               className="w-32 mb-3"
               onClick={() => {
-                window.scrollTo({ top: 0, behavior: "smooth" });
+                scrollToTop();
               }}
             >
               <MainLogo />
