@@ -8,42 +8,6 @@ import { useMemo } from "react";
 
 type Props = { value: string; onChange: (v: string) => void };
 
-const allowed = {
-  tagNames: [
-    "p",
-    "br",
-    "strong",
-    "em",
-    "del",
-    "code",
-    "pre",
-    "blockquote",
-    "a",
-    "ul",
-    "ol",
-    "li",
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-    "table",
-    "thead",
-    "tbody",
-    "tr",
-    "th",
-    "td",
-    "hr",
-    "span",
-  ],
-  attributes: {
-    a: ["href", "title"],
-    span: ["className"],
-    code: ["className"],
-  },
-};
-
 export default function MarkdownEditor({ value, onChange }: Props) {
   const toolbar = useMemo(
     () => [
@@ -154,7 +118,9 @@ export default function MarkdownEditor({ value, onChange }: Props) {
               {t.label}
             </button>
           ))}
-          <div className="ml-auto flex items-center gap-1 text-sm">
+          {/* Commenting size until better UI approach is introduced */}
+
+          {/* <div className="ml-auto flex items-center gap-1 text-sm">
             <span className="opacity-70">Size</span>
             <select
               onChange={(e) => e.target.value && setSize(e.target.value)}
@@ -170,7 +136,7 @@ export default function MarkdownEditor({ value, onChange }: Props) {
               <option value="text-xl">XL</option>
               <option value="text-2xl">2XL</option>
             </select>
-          </div>
+          </div> */}
         </div>
 
         <textarea

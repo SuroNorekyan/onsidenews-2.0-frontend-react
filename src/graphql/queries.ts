@@ -1,4 +1,3 @@
-// src/graphql/queries.ts
 import { gql } from "@apollo/client";
 
 export const GET_POSTS_PAGINATED = gql`
@@ -78,5 +77,28 @@ export const GET_SINGLE_POST = gql`
       viewsCount
       isTop
     }
+  }
+`;
+
+/** 🔎 Search API (works with your backend filter) */
+export const SEARCH_POSTS = gql`
+  query SearchPosts($filter: FilterPostsInput) {
+    searchPosts(filter: $filter) {
+      postId
+      title
+      imageUrl
+      content
+      createdAt
+      viewsCount
+      isTop
+      tags
+    }
+  }
+`;
+
+/** ℹ️ Did you mean API */
+export const DID_YOU_MEAN = gql`
+  query DidYouMean($query: String!) {
+    didYouMean(query: $query)
   }
 `;

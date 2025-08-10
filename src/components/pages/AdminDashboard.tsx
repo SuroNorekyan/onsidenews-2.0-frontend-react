@@ -1,19 +1,31 @@
-//src/components/pages/AdminDashboard.tsx
-import { useMutation, useQuery, useApolloClient } from "@apollo/client";
-import { useState } from "react";
+import {
+  useMutation,
+  useQuery,
+  useApolloClient,
+  useLazyQuery,
+} from "@apollo/client";
+import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { useAuth } from "../../auth/AuthContext";
 import { CREATE_POST, UPDATE_POST, DELETE_POST } from "../../graphql/mutations";
-import { GET_ALL_POSTS, GET_SINGLE_POST } from "../../graphql/queries";
+import {
+  GET_ALL_POSTS,
+  GET_SINGLE_POST,
+  SEARCH_POSTS,
+  DID_YOU_MEAN,
+} from "../../graphql/queries";
 import MarkdownEditor from "../ui/MarkdownEditor";
+import Pagination from "../shared/Pagination";
 
-type PostListItem = {
-  postId: number;
+type PostItem = {
+  postId: number; // we’ll normalize to number even if backend returns string sometimes
   title: string;
   imageUrl?: string | null;
   createdAt: string;
   viewsCount: number;
   isTop: boolean;
+  content?: string | null;
+  tags?: string[] | null;
 };
 
 const emptyForm = {
@@ -21,26 +33,44 @@ const emptyForm = {
   title: "",
   content: "",
   imageUrl: "",
-  tags: "" as string, // CSV in UI, backend expects string[]
+  tags: "", // CSV in UI, backend expects string[]
   isTop: false,
 };
 
 export default function AdminDashboard() {
-  const apollo = useApolloClient(); // ✅ Hooks go inside the component
+  const apollo = useApolloClient();
   const { user, logout } = useAuth();
+
+  // --- form/edit state ---
   const [form, setForm] = useState({ ...emptyForm });
   const [editingId, setEditingId] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<string>("");
 
-  const { data, loading, refetch } = useQuery<{ posts: PostListItem[] }>(
+  // --- list/search/pagination state ---
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [pageSize, setPageSize] = useState<number>(8);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
+  const { data, loading, refetch } = useQuery<{ posts: PostItem[] }>(
     GET_ALL_POSTS
   );
 
+  // Lazy search + suggestion
+  const [runSearch, { data: searchData, loading: searching }] = useLazyQuery(
+    SEARCH_POSTS,
+    { fetchPolicy: "network-only" }
+  );
+  const [runDidYouMean, { data: dymData }] = useLazyQuery(DID_YOU_MEAN, {
+    fetchPolicy: "network-only",
+  });
+
+  // --- mutations ---
   const [createPost, { loading: creating }] = useMutation(CREATE_POST, {
     onCompleted: () => {
       setFeedback("Post created");
       setForm({ ...emptyForm });
-      refetch();
+      refreshLists();
     },
     onError: (e) => setFeedback(e.message),
   });
@@ -50,7 +80,7 @@ export default function AdminDashboard() {
       setFeedback("Post updated");
       setForm({ ...emptyForm });
       setEditingId(null);
-      refetch();
+      refreshLists();
     },
     onError: (e) => setFeedback(e.message),
   });
@@ -59,16 +89,33 @@ export default function AdminDashboard() {
     onCompleted: () => {
       setFeedback("Post deleted");
       if (editingId) setEditingId(null);
-      refetch();
+      refreshLists();
     },
     onError: (e) => setFeedback(e.message),
   });
 
   const isBusy = creating || updating || deleting;
 
+  // ---- helpers ----
+  const refreshLists = () => {
+    refetch();
+    if (searchTerm.trim()) {
+      runSearch({
+        variables: {
+          filter: {
+            containsText: searchTerm.trim(),
+            sortByRelevance: "DESC",
+          },
+        },
+      });
+      runDidYouMean({ variables: { query: searchTerm.trim() } });
+    }
+  };
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     setFeedback("");
+
     const payload = {
       title: form.title.trim(),
       content: form.content,
@@ -80,38 +127,41 @@ export default function AdminDashboard() {
       isTop: !!form.isTop,
     };
 
-    if (editingId) {
-      updatePost({ variables: { id: editingId, input: payload } });
+    if (editingId !== null) {
+      updatePost({
+        variables: { id: Number(editingId), input: payload },
+      });
     } else {
       createPost({ variables: { input: payload } });
     }
   };
 
-  const fetchPostForEdit = async (id: number) => {
+  const fetchPostForEdit = async (id: number | string) => {
     try {
+      const numericId = Number(id);
       const { data } = await apollo.query({
         query: GET_SINGLE_POST,
-        variables: { id },
+        variables: { id: numericId },
         fetchPolicy: "network-only",
       });
       const post = data.post;
       setForm({
-        postId: post.postId,
+        postId: Number(post.postId),
         title: post.title,
         content: post.content ?? "",
         imageUrl: post.imageUrl ?? "",
         tags: "",
         isTop: !!post.isTop,
       });
-    } catch (e) {
-      console.error(e);
-      setFeedback("Failed to load post body");
+    } catch {
+      setFeedback("Failed to load post");
     }
   };
 
-  const startEdit = (p: PostListItem) => {
-    setEditingId(p.postId);
+  const startEdit = (p: PostItem) => {
+    setEditingId(Number(p.postId));
     fetchPostForEdit(p.postId);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const cancelEdit = () => {
@@ -119,8 +169,62 @@ export default function AdminDashboard() {
     setForm({ ...emptyForm });
   };
 
+  const handleDelete = (id: number | string) => {
+    deletePost({ variables: { id: Number(id) } });
+  };
+
+  // ---- search logic with debounce + suggestion ----
+  const debounceRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    // reset pagination when searching
+    setCurrentPage(1);
+
+    const q = searchTerm.trim();
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    if (!q) {
+      setSuggestion(null);
+      return; // show all posts below
+    }
+
+    debounceRef.current = window.setTimeout(() => {
+      runSearch({
+        variables: {
+          filter: { containsText: q, sortByRelevance: "DESC" },
+        },
+      });
+      runDidYouMean({ variables: { query: q } });
+    }, 250);
+  }, [searchTerm, runSearch, runDidYouMean]);
+
+  useEffect(() => {
+    setSuggestion(dymData?.didYouMean ?? null);
+  }, [dymData]);
+
+  const useSearch = Boolean(searchTerm.trim());
+
+  // Normalize list so postId is always number
+  const allPosts: PostItem[] = useMemo(() => {
+    return (data?.posts ?? []).map((p) => ({ ...p, postId: Number(p.postId) }));
+  }, [data]);
+
+  const searchedPosts: PostItem[] = useMemo(() => {
+    const list = searchData?.searchPosts ?? [];
+    return list.map((p: any) => ({ ...p, postId: Number(p.postId) }));
+  }, [searchData]);
+
+  const activeList = useSearch ? searchedPosts : allPosts;
+
+  // ---- client-side pagination (backend search returns array) ----
+  const totalPages = Math.max(1, Math.ceil(activeList.length / pageSize));
+  const page = Math.min(currentPage, totalPages);
+  const start = (page - 1) * pageSize;
+  const end = start + pageSize;
+  const pagedItems = activeList.slice(start, end);
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 space-y-8">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
@@ -231,47 +335,125 @@ export default function AdminDashboard() {
         </form>
       </section>
 
-      {/* Posts List */}
-      <section className="rounded-2xl border p-4 space-y-4">
-        <h2 className="text-xl font-semibold">All Posts</h2>
-        {loading ? (
-          <div>Loading…</div>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-4">
-            {data?.posts?.map((p) => (
-              <article
-                key={p.postId}
-                className="rounded-xl border p-3 space-y-2"
+      {/* 🔎 Search Bar */}
+      <section className="rounded-2xl border p-4 space-y-3">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+          <div className="flex flex-1 items-center gap-2">
+            <input
+              className="flex-1 rounded-lg border px-3 py-2 bg-transparent"
+              placeholder="Search posts (e.g., atletico)…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                className="px-3 py-2 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm"
+                onClick={() => setSearchTerm("")}
               >
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold">{p.title}</h3>
-                  {p.isTop && (
-                    <span className="text-xs px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30">
-                      TOP
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs opacity-70">
-                  {new Date(p.createdAt).toLocaleString()} • {p.viewsCount}{" "}
-                  views
-                </div>
-                <div className="flex items-center gap-2 pt-2">
-                  <button
-                    className="px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm"
-                    onClick={() => startEdit(p)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm"
-                    onClick={() => deletePost({ variables: { id: p.postId } })}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </article>
-            ))}
+                Clear
+              </button>
+            )}
           </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm opacity-80">Page size</label>
+            <select
+              className="rounded-lg border px-2 py-1 bg-transparent"
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+            >
+              {[5, 8, 12, 16, 24].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* “Did you mean … ?” */}
+        {useSearch &&
+          !searching &&
+          suggestion &&
+          suggestion !== searchTerm.trim() && (
+            <div className="text-sm">
+              Did you mean{" "}
+              <button
+                className="underline text-blue-600 dark:text-blue-400"
+                onClick={() => setSearchTerm(suggestion)}
+              >
+                {suggestion}
+              </button>
+              ?
+            </div>
+          )}
+      </section>
+
+      {/* Posts List (search-aware + paginated) */}
+      <section className="rounded-2xl border p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">
+            {useSearch ? "Search Results" : "All Posts"}
+          </h2>
+          {useSearch && (
+            <span className="text-sm opacity-70">
+              {searching ? "Searching…" : `${activeList.length} result(s)`}
+            </span>
+          )}
+        </div>
+
+        {loading || (useSearch && searching) ? (
+          <div>Loading…</div>
+        ) : activeList.length === 0 ? (
+          <div className="opacity-80 text-sm">No posts found.</div>
+        ) : (
+          <>
+            <div className="grid md:grid-cols-2 gap-4">
+              {pagedItems.map((p) => (
+                <article
+                  key={p.postId}
+                  className="rounded-xl border p-3 space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">{p.title}</h3>
+                    {p.isTop && (
+                      <span className="text-xs px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30">
+                        TOP
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs opacity-70">
+                    {new Date(p.createdAt).toLocaleString()} • {p.viewsCount}{" "}
+                    views
+                  </div>
+                  <div className="flex items-center gap-2 pt-2">
+                    <button
+                      className="px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-sm"
+                      onClick={() => startEdit(p)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm"
+                      onClick={() => handleDelete(p.postId)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={(p) => setCurrentPage(Number(p))}
+              className="mt-6"
+            />
+          </>
         )}
       </section>
     </div>
