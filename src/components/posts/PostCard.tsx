@@ -1,8 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Clock, Eye } from "lucide-react";
 import { FC } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { protectShortWords, safeTitleText } from "../../utils/shared/textHelpers";
 
 // Plain-text teaser from markdown (no syntax chars)
 function markdownToText(md: string) {
@@ -42,23 +41,11 @@ const PostCard: FC<PostCardProps> = ({ post, darkMode }) => {
   const teaser =
     cleanText.length > 140 ? cleanText.slice(0, 140) + "…" : cleanText;
 
-  const safeTitle = protectShortWords(
-    post.title.length > 70 ? post.title.slice(0, 70) + "…" : post.title
-  );
+  const safeTitle = safeTitleText(post.title);
 
   const safeTeaser = protectShortWords(teaser);
 
-  function protectShortWords(text: string, minLength = 15) {
-    return text
-      .split(/\s+/)
-      .map((word) => {
-        if (word.length < minLength) {
-          return word.replace(/ /g, "\u00A0"); // Non-breaking for short words
-        }
-        return word; // Keep long words normal so browser can wrap
-      })
-      .join(" ");
-  }
+  
 
   return (
     <div

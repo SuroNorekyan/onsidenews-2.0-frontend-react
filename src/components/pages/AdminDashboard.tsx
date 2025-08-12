@@ -16,6 +16,8 @@ import {
 } from "../../graphql/queries";
 import MarkdownEditor from "../ui/MarkdownEditor";
 import Pagination from "../shared/Pagination";
+import { protectShortWords, safeTitleText } from "../../utils/shared/textHelpers";
+
 
 type PostItem = {
   postId: number; // we’ll normalize to number even if backend returns string sometimes
@@ -223,7 +225,7 @@ export default function AdminDashboard() {
   const pagedItems = activeList.slice(start, end);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 py-16 space-y-8 md:py-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -242,7 +244,7 @@ export default function AdminDashboard() {
 
       {/* Feedback */}
       {feedback && (
-        <div className="rounded-xl bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 px-4 py-2">
+        <div className="rounded-xl bg-green-100 dark:bg-green-600/30 text-green-800 dark:text-green-200 px-4 py-2">
           {feedback}
         </div>
       )}
@@ -297,7 +299,7 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div>
+          <div className="break-words">
             <label className="block text-sm mb-2">Content (Markdown)</label>
             <MarkdownEditor
               value={form.content}
@@ -416,10 +418,14 @@ export default function AdminDashboard() {
                   key={p.postId}
                   className="rounded-xl border p-3 space-y-2"
                 >
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold">{p.title}</h3>
+                  <div className="flex items-start justify-between">
+                    <h3
+                      className="font-semibold break-all  overflow-hidden text-ellipsis prevent-short-break"
+                    >
+                      {safeTitleText(p.title)}
+                    </h3>
                     {p.isTop && (
-                      <span className="text-xs px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30">
+                      <span className="text-xs px-2 py-0.5 ml-2 mt-1 rounded bg-amber-100 dark:bg-amber-500/30">
                         TOP
                       </span>
                     )}

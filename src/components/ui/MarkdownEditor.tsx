@@ -35,6 +35,7 @@ export default function MarkdownEditor({ value, onChange }: Props) {
     s.tagNames = Array.from(
       new Set([
         ...(s.tagNames || []),
+        "u",
         "span",
         "table",
         "thead",
@@ -104,8 +105,9 @@ export default function MarkdownEditor({ value, onChange }: Props) {
   };
 
   return (
-    <div className="grid md:grid-cols-2 gap-4">
-      <div className="rounded-2xl border bg-white dark:bg-gray-900">
+     <div className="grid md:grid-cols-2 gap-4 min-h-[360px]">
+      {/* Editor column: make it a column flex container and allow children to shrink */}
+      <div className="rounded-2xl border bg-white dark:bg-gray-900 flex flex-col min-h-0">
         <div className="flex flex-wrap gap-2 p-2 border-b items-center">
           {toolbar.map((t: any) => (
             <button
@@ -139,16 +141,19 @@ export default function MarkdownEditor({ value, onChange }: Props) {
           </div> */}
         </div>
 
+        {/* Textarea: flex-1 to fill remaining height, min-h-0 to allow proper flex sizing,
+            overflow-auto so it scrolls only when content truly exceeds the available area */}
         <textarea
           id="markdown-area"
-          className="w-full min-h-[260px] p-3 bg-transparent outline-none"
+          className="w-full flex-1 min-h-0 p-3 bg-transparent outline-none resize-none overflow-auto"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Write your post in Markdown…"
         />
       </div>
 
-      <div className="rounded-2xl border p-3 prose prose-lg dark:prose-invert max-w-none">
+      {/* Preview: allow it to scroll if it grows beyond the shared height */}
+      <div className="rounded-2xl border p-3 prose prose-lg dark:prose-invert max-w-none min-h-0 overflow-auto">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
