@@ -8,6 +8,7 @@ import {
   GET_POSTS_PAGINATED,
   GET_TOP_POSTS_PAGINATED,
 } from "../../graphql/queries";
+import PostsCarousel from "../ui/PostsCarousel";
 
 const PAGE_SIZE = 12;
 
@@ -60,6 +61,7 @@ export default function TopPostsPage({ darkMode }: { darkMode?: boolean }) {
             totalPages={totalPages}
             onPageChange={handlePageChange}
           />
+          <PostsCarousel seeAllHref="/"/>
         </div>
 
         {/* RIGHT: Sidebar shows ALL posts */}

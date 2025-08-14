@@ -5,7 +5,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   text?: string;
   icon?: React.ReactNode;
   iconPosition?: "left" | "right";
-  fontSize?: "xs" | "sm" | "base" | "lg";
+  fontSize?: "xs" | "sm" | "base" | "lg" ;
   fontWeight?: "normal" | "medium" | "semibold" | "bold";
   hoverBgColor?: string;
   hoverTextColor?: string;

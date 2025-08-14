@@ -6,6 +6,7 @@ import PostsSection from "../posts/PostsSection";
 import Sidebar from "../posts/Sidebar";
 import Pagination from "../shared/Pagination";
 import { GET_POSTS_PAGINATED, GET_TOP_POSTS } from "../../graphql/queries";
+import PostsCarousel from "../ui/PostsCarousel";
 
 interface HomePageProps {
   darkMode?: boolean;
@@ -57,6 +58,7 @@ const HomePage: FC<HomePageProps> = ({ darkMode }) => {
             totalPages={totalPages}
             onPageChange={handlePageChange}
           />
+          <PostsCarousel seeAllHref="/"/>
         </div>
 
         {/* RIGHT: sidebar shows TOP posts */}
