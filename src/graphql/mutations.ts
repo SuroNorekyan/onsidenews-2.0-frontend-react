@@ -41,3 +41,24 @@ export const DELETE_POST = gql`
     deletePost(id: $id)
   }
 `;
+
+// Multilingual variants (same server operations, input supports contents[])
+export const CREATE_POST_ML = gql`
+  mutation CreatePostML($input: CreatePostInput!) {
+    createPost(input: $input) {
+      postId
+      isTop
+      createdAt
+    }
+  }
+`;
+
+export const UPDATE_POST_ML = gql`
+  mutation UpdatePostML($id: Int!, $input: UpdatePostInput!) {
+    updatePost(id: $id, input: $input) {
+      postId
+      isTop
+      updatedAt
+    }
+  }
+`;

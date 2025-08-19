@@ -102,3 +102,55 @@ export const DID_YOU_MEAN = gql`
     didYouMean(query: $query)
   }
 `;
+
+// Admin: fetch post with all language contents for editing
+export const GET_POST_WITH_CONTENTS = gql`
+  query GetPostWithContents($id: Int!) {
+    post(id: $id) {
+      postId
+      isTop
+      imageUrl
+      baseLanguage
+      contents {
+        language
+        title
+        content
+        tags
+      }
+    }
+  }
+`;
+
+// Multilingual: Posts list by language (schema may be array or object)
+// Header-only multilingual mode: rely on Accept-Language header.
+// TODO: Re-enable `language` argument once backend enum/arg names are confirmed via introspection.
+export const POSTS_IN_LANG = gql`
+  query Posts {
+    posts {
+      postId
+      servedLanguage
+      imageUrl
+      isTop
+      createdAt
+      viewsCount
+      contentResolved { language title content tags }
+    }
+  }
+`;
+
+// Multilingual: Single post by language
+// Header-only multilingual mode: rely on Accept-Language header.
+// TODO: Re-enable `language` argument once backend enum/arg names are confirmed via introspection.
+export const POST_IN_LANG = gql`
+  query Post($id: Int!) {
+    post(id: $id) {
+      postId
+      servedLanguage
+      imageUrl
+      isTop
+      createdAt
+      viewsCount
+      contentResolved { language title content tags }
+    }
+  }
+`;

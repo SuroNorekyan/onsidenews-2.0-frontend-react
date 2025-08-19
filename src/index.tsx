@@ -7,6 +7,7 @@ import reportWebVitals from "./reportWebVitals";
 import { ApolloProvider } from "@apollo/client";
 import client from "./lib/apolloClient";
 import { AuthProvider } from "./auth/AuthContext";
+import { LanguageProvider } from "./i18n/LanguageContext";
 
 declare global {
   interface Window {
@@ -21,9 +22,11 @@ const root = ReactDOM.createRoot(
 root.render(
   <React.StrictMode>
     <ApolloProvider client={client}>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </LanguageProvider>
     </ApolloProvider>
   </React.StrictMode>
 );

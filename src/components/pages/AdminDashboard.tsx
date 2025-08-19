@@ -7,10 +7,10 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { useAuth } from "../../auth/AuthContext";
-import { CREATE_POST, UPDATE_POST, DELETE_POST } from "../../graphql/mutations";
+import { CREATE_POST_ML, UPDATE_POST_ML, DELETE_POST } from "../../graphql/mutations";
 import {
   GET_ALL_POSTS,
-  GET_SINGLE_POST,
+  GET_POST_WITH_CONTENTS,
   SEARCH_POSTS,
   DID_YOU_MEAN,
 } from "../../graphql/queries";
@@ -30,12 +30,31 @@ type PostItem = {
   tags?: string[] | null;
 };
 
-const emptyForm = {
-  postId: 0,
-  title: "",
-  content: "",
+// --- Multilingual Admin form types ---
+export const LANGS = ["HY", "RU", "EN"] as const;
+export type Lang = typeof LANGS[number];
+export const LANG_LABEL: Record<Lang, string> = {
+  HY: "Հայերեն",
+  RU: "Русский",
+  EN: "English",
+};
+
+type LangBundle = { title: string; content: string; tags: string };
+const emptyBundle: LangBundle = { title: "", content: "", tags: "" };
+
+type AdminFormML = {
+  postId?: number;
+  bundles: Record<Lang, LangBundle>;
+  baseLanguage: Lang;
+  imageUrl: string;
+  isTop: boolean;
+};
+
+const emptyFormML: AdminFormML = {
+  postId: undefined,
+  bundles: { HY: { ...emptyBundle }, RU: { ...emptyBundle }, EN: { ...emptyBundle } },
+  baseLanguage: "EN",
   imageUrl: "",
-  tags: "", // CSV in UI, backend expects string[]
   isTop: false,
 };
 
@@ -44,7 +63,8 @@ export default function AdminDashboard() {
   const { user, logout } = useAuth();
 
   // --- form/edit state ---
-  const [form, setForm] = useState({ ...emptyForm });
+  const [form, setForm] = useState<AdminFormML>({ ...emptyFormML });
+  const [activeLang, setActiveLang] = useState<Lang>("EN");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<string>("");
 
@@ -68,19 +88,19 @@ export default function AdminDashboard() {
   });
 
   // --- mutations ---
-  const [createPost, { loading: creating }] = useMutation(CREATE_POST, {
+  const [createPost, { loading: creating }] = useMutation(CREATE_POST_ML, {
     onCompleted: () => {
       setFeedback("Post created");
-      setForm({ ...emptyForm });
+      setForm({ ...emptyFormML });
       refreshLists();
     },
     onError: (e) => setFeedback(e.message),
   });
 
-  const [updatePost, { loading: updating }] = useMutation(UPDATE_POST, {
+  const [updatePost, { loading: updating }] = useMutation(UPDATE_POST_ML, {
     onCompleted: () => {
       setFeedback("Post updated");
-      setForm({ ...emptyForm });
+      setForm({ ...emptyFormML });
       setEditingId(null);
       refreshLists();
     },
@@ -118,23 +138,29 @@ export default function AdminDashboard() {
     e.preventDefault();
     setFeedback("");
 
-    const payload = {
-      title: form.title.trim(),
-      content: form.content,
-      imageUrl: form.imageUrl?.trim() || undefined,
-      tags: form.tags
+    // Build multilingual contents array from non-empty bundles
+    const contents = LANGS.map((code) => {
+      const b = form.bundles[code];
+      const tags = b.tags
         .split(",")
         .map((t) => t.trim())
-        .filter(Boolean),
+        .filter(Boolean);
+      const hasAny = (b.title && b.title.trim()) || (b.content && b.content.trim()) || tags.length > 0;
+      if (!hasAny) return null;
+      return { language: code, title: b.title.trim(), content: b.content, tags };
+    }).filter(Boolean);
+
+    const input: any = {
+      imageUrl: form.imageUrl?.trim() || undefined,
       isTop: !!form.isTop,
+      baseLanguage: form.baseLanguage,
+      contents,
     };
 
     if (editingId !== null) {
-      updatePost({
-        variables: { id: Number(editingId), input: payload },
-      });
+      updatePost({ variables: { id: Number(editingId), input } });
     } else {
-      createPost({ variables: { input: payload } });
+      createPost({ variables: { input } });
     }
   };
 
@@ -142,19 +168,29 @@ export default function AdminDashboard() {
     try {
       const numericId = Number(id);
       const { data } = await apollo.query({
-        query: GET_SINGLE_POST,
+        query: GET_POST_WITH_CONTENTS,
         variables: { id: numericId },
         fetchPolicy: "network-only",
       });
       const post = data.post;
+      const bundles: Record<Lang, LangBundle> = { HY: { ...emptyBundle }, RU: { ...emptyBundle }, EN: { ...emptyBundle } };
+      for (const c of post.contents || []) {
+        if (!c?.language) continue;
+        const code = c.language as Lang;
+        bundles[code] = {
+          title: c.title || "",
+          content: c.content || "",
+          tags: Array.isArray(c.tags) ? c.tags.join(", ") : (c.tags || ""),
+        };
+      }
       setForm({
         postId: Number(post.postId),
-        title: post.title,
-        content: post.content ?? "",
-        imageUrl: post.imageUrl ?? "",
-        tags: "",
+        bundles,
+        baseLanguage: (post.baseLanguage || "EN") as Lang,
+        imageUrl: post.imageUrl || "",
         isTop: !!post.isTop,
       });
+      setActiveLang((post.baseLanguage || "EN") as Lang);
     } catch {
       setFeedback("Failed to load post");
     }
@@ -168,7 +204,7 @@ export default function AdminDashboard() {
 
   const cancelEdit = () => {
     setEditingId(null);
-    setForm({ ...emptyForm });
+    setForm({ ...emptyFormML });
   };
 
   const handleDelete = (id: number | string) => {
@@ -249,21 +285,27 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Post Form */}
+      {/* Post Form (Multilingual) */}
       <section className="rounded-2xl border p-4 space-y-4">
         <h2 className="text-xl font-semibold">
           {editingId ? "Edit Post" : "Create Post"}
         </h2>
         <form onSubmit={submit} className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
+          {/* Settings row */}
+          <div className="grid md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm mb-1">Title</label>
-              <input
+              <label className="block text-sm mb-1">Base Language</label>
+              <select
                 className="w-full rounded-lg border px-3 py-2 bg-transparent"
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                required
-              />
+                value={form.baseLanguage}
+                onChange={(e) => setForm({ ...form, baseLanguage: e.target.value as Lang })}
+              >
+                {LANGS.map((l) => (
+                  <option key={l} value={l}>
+                    {l} — {LANG_LABEL[l]}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm mb-1">Image URL</label>
@@ -274,17 +316,6 @@ export default function AdminDashboard() {
                 placeholder="https://…"
               />
             </div>
-            <div>
-              <label className="block text-sm mb-1">
-                Tags (comma separated)
-              </label>
-              <input
-                className="w-full rounded-lg border px-3 py-2 bg-transparent"
-                value={form.tags}
-                onChange={(e) => setForm({ ...form, tags: e.target.value })}
-                placeholder="barcelona, messi, laliga"
-              />
-            </div>
             <div className="flex items-center gap-2 pt-6">
               <input
                 id="isTop"
@@ -293,21 +324,63 @@ export default function AdminDashboard() {
                 checked={form.isTop}
                 onChange={(e) => setForm({ ...form, isTop: e.target.checked })}
               />
-              <label htmlFor="isTop" className="text-sm">
-                Mark as Top
-              </label>
+              <label htmlFor="isTop" className="text-sm">Mark as Top</label>
             </div>
           </div>
 
-          <div className="break-words">
-            <label className="block text-sm mb-2">Content (Markdown)</label>
-            <MarkdownEditor
-              value={form.content}
-              onChange={(v: any) => setForm({ ...form, content: v })}
-            />
+          {/* Language tabs */}
+          <div>
+            <div className="flex gap-2 mb-3">
+              {LANGS.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => setActiveLang(l)}
+                  className={clsx(
+                    "px-3 py-1.5 rounded-lg border text-sm",
+                    activeLang === l ? "bg-gray-900 text-white dark:bg-gray-100 dark:text-black" : "bg-transparent"
+                  )}
+                >
+                  {l} — {LANG_LABEL[l]}
+                </button>
+              ))}
+            </div>
+
+            {/* Active language bundle */}
+            {(() => {
+              const b = form.bundles[activeLang];
+              return (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm mb-1">Title ({activeLang})</label>
+                    <input
+                      className="w-full rounded-lg border px-3 py-2 bg-transparent"
+                      value={b.title}
+                      onChange={(e) => setForm({ ...form, bundles: { ...form.bundles, [activeLang]: { ...b, title: e.target.value } } })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Content ({activeLang})</label>
+                    <MarkdownEditor
+                      value={b.content}
+                      onChange={(v: any) => setForm({ ...form, bundles: { ...form.bundles, [activeLang]: { ...b, content: v } } })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Tags CSV ({activeLang})</label>
+                    <input
+                      className="w-full rounded-lg border px-3 py-2 bg-transparent"
+                      value={b.tags}
+                      onChange={(e) => setForm({ ...form, bundles: { ...form.bundles, [activeLang]: { ...b, tags: e.target.value } } })}
+                      placeholder="news, example"
+                    />
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 pt-2">
             <button
               type="submit"
               disabled={isBusy}

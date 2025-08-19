@@ -1,0 +1,222 @@
+The teaser, views, and date disappeared because the card is still reading legacy fields (title, content), while your list/query now returns the localized bundle under contentResolved. Also, your queries don’t fetch createdAt and viewsCount in the multilingual selection set—so the component can’t render them.
+
+Here’s a clean, drop‑in fix that:
+
+Reads title/content from contentResolved
+
+Restores teaser, views, and release date
+
+Shows a tiny globe + language code (instead of the verbose “shown in EN/served EN” text)
+
+Keeps the ?lang= navigation
+
+Doesn’t break formatting
+
+1) Update your multilingual queries to include createdAt and viewsCount
+
+src/graphql/queries.ts
+
+import { gql } from "@apollo/client";
+
+// Header-only mode (no language var) — add createdAt & viewsCount
+export const POSTS_IN_LANG = gql`
+  query Posts {
+    posts {
+      postId
+      imageUrl
+      isTop
+      createdAt
+      viewsCount
+      servedLanguage
+      contentResolved {
+        language
+        title
+        tags
+        content
+      }
+    }
+  }
+`;
+
+export const POST_IN_LANG = gql`
+  query Post($id: Int!) {
+    post(id: $id) {
+      postId
+      imageUrl
+      isTop
+      createdAt
+      viewsCount
+      servedLanguage
+      contentResolved {
+        language
+        title
+        tags
+        content
+      }
+    }
+  }
+`;
+
+
+If you later re‑enable the language variable, just add $language: LanguageCode and language: $language back to both queries.
+
+2) Fix PostCard to use contentResolved and show the language as a globe badge
+
+Replace your current PostCard with this version:
+
+import { useNavigate } from "react-router-dom";
+import { Clock, Eye, Globe } from "lucide-react";
+import { FC, useMemo } from "react";
+import { protectShortWords, safeTitleText } from "../../utils/shared/textHelpers";
+
+type Lang = "HY" | "RU" | "EN";
+
+// Convert markdown → plain text teaser (keep your existing cleaner)
+function markdownToText(md: string) {
+  return (md || "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/`[^`]*`/g, "")
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/^[#>*+-]\s+/gm, "")
+    .replace(/[_*~`>#-]/g, "")
+    .replace(/\n+/g, " ")
+    .trim();
+}
+
+interface PostCardProps {
+  post: {
+    postId: number | string;
+    imageUrl: string | null;
+    createdAt?: string | null;
+    viewsCount?: number | null;
+
+    // multilingual bits
+    servedLanguage?: Lang; // what backend actually served after fallback
+    contentResolved?: {
+      language: Lang; // which language this content is
+      title: string;
+      content: string;
+      tags?: string[];
+    };
+
+    // (legacy fields may still exist but we won't rely on them anymore)
+  };
+  darkMode?: boolean;
+  selectedLang?: Lang; // the UI-selected language (for ?lang= routing)
+}
+
+const PostCard: FC<PostCardProps> = ({ post, darkMode, selectedLang }) => {
+  const navigate = useNavigate();
+
+  const title = post.contentResolved?.title ?? ""; // always from localized bundle
+  const content = post.contentResolved?.content ?? "";
+  const safeTitle = safeTitleText(title);
+
+  const teaser = useMemo(() => {
+    const txt = markdownToText(content);
+    const t = txt.length > 140 ? txt.slice(0, 140) + "…" : txt;
+    return protectShortWords(t);
+  }, [content]);
+
+  const cardBg = darkMode ? "bg-gray-800" : "bg-white";
+  const titleColor = darkMode ? "text-white" : "text-black";
+  const textColor = darkMode ? "text-gray-200" : "text-gray-600";
+  const metaColor = "text-gray-400";
+
+  const langBadge = post.contentResolved?.language; // HY | RU | EN
+
+  return (
+    <div
+      className={`${cardBg} rounded-lg shadow hover:shadow-lg dark:hover:bg-gray-700 cursor-pointer transition overflow-hidden`}
+      onClick={() =>
+        navigate(
+          `/posts/${post.postId}` +
+            (selectedLang ? `?lang=${selectedLang}` : "")
+        )
+      }
+    >
+      {post.imageUrl && (
+        <img
+          src={post.imageUrl}
+          alt={safeTitle || "post image"}
+          className="w-full h-48 object-cover object-[50%_30%]"
+          loading="lazy"
+        />
+      )}
+
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-2">
+          <h2
+            className={`text-lg font-bold ${titleColor} break-words overflow-hidden text-ellipsis prevent-short-break`}
+            title={safeTitle}
+          >
+            {safeTitle}
+          </h2>
+
+          {/* small globe + lang code */}
+          {langBadge && (
+            <span
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px]
+                         bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 shrink-0"
+              title={`Language: ${langBadge}`}
+            >
+              <Globe size={12} />
+              {langBadge}
+            </span>
+          )}
+        </div>
+
+        {/* teaser */}
+        {teaser && (
+          <p
+            className={`mt-1 text-sm ${textColor} break-words line-clamp-3 overflow-hidden text-ellipsis prevent-short-break`}
+          >
+            {teaser}
+          </p>
+        )}
+
+        <div className={`flex items-center justify-between mt-2 text-xs ${metaColor}`}>
+          <div className="flex items-center gap-1">
+            <Clock size={14} />
+            <span>
+              {post.createdAt
+                ? new Date(post.createdAt).toLocaleDateString()
+                : "—"}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <Eye size={14} />
+            <span>{typeof post.viewsCount === "number" ? post.viewsCount : 0}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PostCard;
+
+
+What changed:
+
+We ignore legacy title/content and render from post.contentResolved.
+
+The teaser is derived from contentResolved.content (so it matches the selected language).
+
+We added a globe icon + language code badge in the top‑right.
+
+createdAt / viewsCount are rendered safely even if missing.
+
+3) Make sure your list passes the right shape to PostCard
+
+Where you map posts (e.g., PostsSection.tsx), don’t remap localized fields to legacy names. Just pass the API post object directly (it already contains contentResolved, servedLanguage, createdAt, etc.), and pass selectedLang for the ?lang= link:
+
+// inside your map callback
+<PostCard
+  key={p.postId}
+  post={p}                 // p has contentResolved + servedLanguage + createdAt + viewsCount
+  selectedLang={selectedLang}
+/>

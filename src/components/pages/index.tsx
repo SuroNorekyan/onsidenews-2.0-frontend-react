@@ -1,47 +1,37 @@
 // src/components/pages/index.tsx
 import { FC } from "react";
-import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@apollo/client";
 import PostsSection from "../posts/PostsSection";
 import Sidebar from "../posts/Sidebar";
-import Pagination from "../shared/Pagination";
-import { GET_POSTS_PAGINATED, GET_TOP_POSTS } from "../../graphql/queries";
+import { GET_TOP_POSTS, POSTS_IN_LANG } from "../../graphql/queries";
 import PostsCarousel from "../ui/PostsCarousel";
+import { useLanguage } from "../../i18n/LanguageContext";
+import { useEffect } from "react";
 
 interface HomePageProps {
   darkMode?: boolean;
 }
 
-const PAGE_SIZE = 12;
-
 const HomePage: FC<HomePageProps> = ({ darkMode }) => {
-  const [params, setParams] = useSearchParams();
-  const pageFromUrl = Number(params.get("page") || 1);
-  const page = Number.isNaN(pageFromUrl) || pageFromUrl < 1 ? 1 : pageFromUrl;
+  const { language } = useLanguage();
 
-  const { data, loading, error } = useQuery(GET_POSTS_PAGINATED, {
-    variables: { page, pageSize: PAGE_SIZE },
+  // Language-aware posts
+  const { data, loading, error, refetch } = useQuery(POSTS_IN_LANG, {
     notifyOnNetworkStatusChange: true,
   });
+
+  // Refetch when language changes to apply header-only language preference
+  useEffect(() => {
+    refetch();
+  }, [language, refetch]);
 
   // fetch top posts for sidebar (sorted by date DESC)
   const { data: topData } = useQuery(GET_TOP_POSTS, {
     variables: { limit: 10 },
   });
 
-  const items = data?.postsPaginated?.items ?? [];
-  const totalPages = data?.postsPaginated?.totalPages ?? 1;
-  const currentPage = data?.postsPaginated?.page ?? page;
-
   const topPosts = topData?.topPosts ?? [];
-
-  const handlePageChange = (nextPage: number) => {
-    setParams((prev) => {
-      const p = new URLSearchParams(prev);
-      p.set("page", String(nextPage));
-      return p;
-    });
-  };
+  const items = data?.posts ?? [];
 
   if (loading && !data) return <div className="p-10">Loading...</div>;
   if (error)
@@ -52,12 +42,7 @@ const HomePage: FC<HomePageProps> = ({ darkMode }) => {
       <div className="flex flex-col lg:flex-row gap-6">
         {/* LEFT: all posts */}
         <div className="flex-1 lg:w-2/3">
-          <PostsSection posts={items} darkMode={darkMode} />
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
+          <PostsSection posts={items} darkMode={darkMode} selectedLang={language} />
           <PostsCarousel seeAllHref="/"/>
         </div>
 

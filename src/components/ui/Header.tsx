@@ -10,6 +10,7 @@ import FilterMenu from "./FilterMenu";
 import MobileMenu from "./MobileMenu";
 import { Link } from "react-router-dom";
 import { scrollToTop } from "../../utils/shared/scrollBehaviour";
+import LanguageSelect from "../LanguageSelect";
 
 interface Props {
   darkMode: boolean;
@@ -57,7 +58,7 @@ export default function Header({ darkMode, toggleDarkMode }: Props) {
             />
           </div>
 
-          {/* Filters */}
+          {/* Filters + Language */}
           <div className="flex items-center gap-2 relative">
             <FilterMenu
               dropdowns={dropdowns}
@@ -65,6 +66,8 @@ export default function Header({ darkMode, toggleDarkMode }: Props) {
               onToggle={(key) => setOpenDropdown(key)}
               darkMode={darkMode}
             />
+
+            <LanguageSelect />
 
             {/* Today’s News (no arrow) */}
             <Button
@@ -103,6 +106,8 @@ export default function Header({ darkMode, toggleDarkMode }: Props) {
             </Link>
           </div>
 
+          <div className="flex items-center gap-2">
+          <LanguageSelect compact />
           <Button
             text="Today’s News"
             border="border border-red-500"
@@ -117,6 +122,7 @@ export default function Header({ darkMode, toggleDarkMode }: Props) {
             darkMode={darkMode}
             darkModeClasses="dark:hover:text-white"
           />
+          </div>
         </div>
 
         {/* Mobile Search */}

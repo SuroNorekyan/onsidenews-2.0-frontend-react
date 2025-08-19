@@ -1,0 +1,166 @@
+TITLE: Implement multilingual UI (HY/RU/EN) with a Header language dropdown + GraphQL wiring
+
+OWNER: Codex
+PRIORITY: P0
+BRANCH: feature/frontend-multilanguage
+TARGET STACK: React + TypeScript + Apollo Client + TailwindCSS + react-router
+
+CONTEXT (BACKEND CONTRACT)
+The backend now supports multilingual posts via:
+- Entities: Post (legacy fields kept) and PostContent (per-language: HY, RU, EN)
+- GraphQL:
+  - enum LanguageCode { HY RU EN }
+  - Queries:
+      post(id: Int!, language?: LanguageCode): Post
+      posts(language?: LanguageCode): { items: Post[], total: Int, page: Int }  // or array if backend returns plain array; detect from schema
+  - On Post:
+      servedLanguage: LanguageCode
+      contentResolved: { language, title, content, tags }
+      contents: [PostContent!]! (may need ResolveField fetch; handle null gracefully)
+  - Mutations:
+      createPost(input: CreatePostInput!): Post
+      updatePost(id: Int!, input: UpdatePostInput!): Post
+
+Language resolution fallback:
+- If query arg `language` provided → try that
+- Else check Accept-Language header → try that
+- Else fallback: baseLanguage → EN → RU → HY
+The backend respects auth guards for mutations; queries are public. For seed/mocks see prior change log and curl examples.
+
+GOAL
+Create a complete multilingual UI layer so users can switch language (HY/RU/EN) and see the SAME posts localized. The switch should be accessible from the top header, look great, and work on both desktop and mobile.
+
+SCOPE
+1) Project structure additions (frontend):
+   - src/i18n/LanguageContext.tsx      // React context for selected language (HY|RU|EN), persisted in localStorage
+   - src/components/LanguageSelect.tsx // Tailwind-styled dropdown component (desktop + mobile-friendly)
+   - src/graphql/queries.ts            // Define/extend Posts and Post queries with `language` variable
+   - src/graphql/mutations.ts          // (Optional) If Admin pages exist, define create/update mutations that accept multilingual inputs
+   - src/components/pages/PostsPage.tsx           // Use dropdown state to query and render list in selected language
+   - src/components/pages/PostPage.tsx            // Use dropdown state (and ?lang= param) to show detail in selected language
+
+   Ensure components are imported into the correct places:
+   - Header.tsx: integrate <LanguageSelect/>
+   - App.tsx / root: wrap with <LanguageProvider> from LanguageContext
+
+2) Language selection behavior:
+   - Dropdown shows labels:
+       HY: "Հայերեն"
+       RU: "Русский"
+       EN: "English"
+   - Persist selection in localStorage under key "onside:lang".
+   - When language changes, re-run current GraphQL queries with the new `language` variable.
+   - Also propagate a URL parameter `?lang=HY|RU|EN` on post detail pages for shareability.
+
+3) Tailwind UI requirements:
+   - Looks great on desktop and mobile:
+     - Desktop: inline select or button-triggered menu with hover and active states; rounded corners, subtle shadow, clear focus ring.
+     - Mobile: larger tap targets; ensure dropdown is not clipped by overflow; z-index above header.
+   - Use Tailwind utility classes; keep to your existing design system.
+   - Provide dark-mode-friendly styles (respect `dark:` variants).
+
+4) Apollo wiring:
+   - Preferred: pass `language` as a GraphQL variable on each query.
+   - Optional: ALSO set `Accept-Language` header via Apollo Link (lowercase variant of HY/RU/EN), but variable takes precedence.
+   - Create/Update mutations (if used in Admin UI) should be placed into graphql/mutations.ts and accept either legacy fields or the new `contents[]` shape exactly as backend expects.
+
+5) Queries & rendering:
+   - Posts list: render `contentResolved.title` and `servedLanguage` (small caption to debug fallbacks).
+   - Post detail: render `contentResolved.title`, `contentResolved.content` (with react-markdown), and `contentResolved.tags`.
+   - Handle `contents` being null on create responses by not relying on it; always rely on `contentResolved`.
+
+6) Edge cases:
+   - If `servedLanguage` != selected language, show a subtle “shown in EN” badge.
+   - If `contentResolved` is missing (rare), show a friendly placeholder.
+   - Don’t break if backend returns an array vs an object with pagination—detect and adjust.
+
+7) Testing checklist (manual OK):
+   - Switch languages from the header; Posts list updates instantly.
+   - Open a Post page; try `?lang=RU` and toggle dropdown to HY/EN.
+   - Verify `servedLanguage` changes if preferred language isn’t present.
+   - Dark mode visual pass; mobile header menu with dropdown not clipped.
+
+IMPLEMENTATION DETAILS
+
+A) Language context (localStorage persistence)
+- Create src/i18n/LanguageContext.tsx with <LanguageProvider> and useLang hook storing "HY" | "RU" | "EN".
+- Default to localStorage value or "EN".
+
+B) Language dropdown UI (LanguageSelect.tsx)
+- A11y: <select> fallback or a custom button+menu.
+- Tailwind styling; examples:
+  - Desktop: `rounded-md border px-3 py-1 hover:bg-gray-50 dark:hover:bg-gray-800 shadow-sm`
+  - Mobile: ensure touch target >= 40px height; use `z-50` for the menu.
+- Export default component and place it in Header.tsx to the right side of nav controls.
+
+C) Queries (src/graphql/queries.ts)
+- Define:
+  - `POSTS_IN_LANG`:
+    ```
+    query Posts($language: LanguageCode) {
+      posts(language: $language) {
+        items {
+          postId
+          servedLanguage
+          imageUrl
+          isTop
+          contentResolved { language title tags }
+        }
+        total
+        page
+      }
+    }
+    ```
+    If backend returns `posts: [Post!]!`, adapt accordingly:
+    ```
+    query Posts($language: LanguageCode) {
+      posts(language: $language) {
+        postId
+        servedLanguage
+        imageUrl
+        isTop
+        contentResolved { language title tags }
+      }
+    }
+    ```
+
+  - `POST_IN_LANG`:
+    ```
+    query Post($id: Int!, $language: LanguageCode) {
+      post(id: $id, language: $language) {
+        postId
+        servedLanguage
+        imageUrl
+        isTop
+        contentResolved { language title content tags }
+      }
+    }
+    ```
+
+D) Accept-Language link (optional)
+- Add an Apollo link that sets header `"Accept-Language": selectedLang.toLowerCase()`.
+- Variable still takes priority.
+
+E) Pages
+- **PostsPage.tsx**: call POSTS_IN_LANG with `{ language: selectedLang }`. Render cards using `contentResolved.title`. Show a tiny caption: `served: <servedLanguage>`.
+- **PostPage.tsx**: read `?lang=` param (fallback to selectedLang). Query POST_IN_LANG with that variable. Render markdown body via `react-markdown`.
+- Keep the dropdown visible on Post page for quick switching; update URL param on change.
+
+F) Directory placement
+- Components: `src/components/LanguageSelect.tsx`
+- Context: `src/i18n/LanguageContext.tsx`
+- GraphQL: `src/graphql/queries.ts`, `src/graphql/mutations.ts`
+- Pages: `src/components/pages/PostsPage.tsx`, `src/components/pages/PostPage.tsx`
+- Header: `src/components/Header.tsx` should import and render `<LanguageSelect/>`.
+
+G) Nice-to-haves
+- A small badge/pill when `servedLanguage` !== selectedLang: “shown in EN”.
+- Remember last selected language across sessions (already covered by localStorage).
+- Add a tiny loading skeleton for title lines.
+
+DELIVERABLES
+- New branch feature/frontend-multilanguage with all code + imports wired.
+- Language dropdown works on mobile & desktop; dark-mode compatible.
+- Posts/Detail pages switch content language via dropdown and/or ?lang param.
+- Queries defined in src/graphql/queries.ts and (optional) mutations in src/graphql/mutations.ts.
+- A short README section appended to project README with screenshots/GIF and usage notes.

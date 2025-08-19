@@ -44,3 +44,10 @@ You don’t have to ever use `eject`. The curated feature set is suitable for sm
 You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
 To learn React, check out the [React documentation](https://reactjs.org/).
+
+## Multilingual UI (HY/RU/EN)
+
+- Language switcher lives in the header; works on desktop and mobile. Selection persists in localStorage under `onside:lang` and updates Apollo queries.
+- Posts list and Post detail are language-aware and display the backend’s `servedLanguage`. A subtle “shown in XX” badge appears if it differs from the selected language.
+- Post URLs include `?lang=HY|RU|EN` and stay in sync when switching languages on the detail page.
+- GraphQL queries added in `src/graphql/queries.ts`: `POSTS_IN_LANG` and `POST_IN_LANG`. Apollo also sends `Accept-Language` based on the current selection.
