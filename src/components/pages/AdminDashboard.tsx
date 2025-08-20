@@ -16,7 +16,7 @@ import {
 } from "../../graphql/queries";
 import MarkdownEditor from "../ui/MarkdownEditor";
 import Pagination from "../shared/Pagination";
-import { protectShortWords, safeTitleText } from "../../utils/shared/textHelpers";
+import {  safeTitleText } from "../../utils/shared/textHelpers";
 
 
 type PostItem = {

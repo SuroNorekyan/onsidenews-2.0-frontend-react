@@ -1,38 +1,87 @@
-import { useQuery } from "@apollo/client";
-import { useState } from "react";
+// src/components/ui/PostsCarousel.tsx
+import { gql, useQuery } from "@apollo/client";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { GET_ALL_POSTS } from "../../graphql/queries";
 import clsx from "clsx";
-import { safeTitleText } from "../../utils/shared/textHelpers";
 import { Clock, Eye } from "lucide-react";
 import Button from "../shared/Button";
+import { safeTitleText } from "../../utils/shared/textHelpers";
 import { scrollToTop } from "../../utils/shared/scrollBehaviour";
+import { useLanguage } from "../../i18n/LanguageContext";
 
 export interface PostsCarouselInterface {
   seeAllHref: string; // optional, so the button only renders if provided
 }
 
+/** Lightweight language-aware list for the carousel */
+const POSTS_IN_LANG_LIST = gql`
+  query Posts($language: LanguageCode) {
+    posts(language: $language) {
+      postId
+      servedLanguage
+      imageUrl
+      createdAt
+      viewsCount
+      isTop
+      contentResolved {
+        language
+        title
+        content
+        tags
+      }
+      title
+      content
+      tags
+    }
+  }
+`;
+
 type PostItem = {
-  postId: number;
-  title: string;
+  postId: number | string;
   imageUrl?: string | null;
   createdAt: string;
   viewsCount: number;
+  servedLanguage?: "EN" | "RU" | "HY" | null;
+  contentResolved?: {
+    language: "EN" | "RU" | "HY";
+    title: string;
+    content: string;
+    tags: string[];
+  };
+  title?: string | null; // legacy
 };
 
 export default function PostsCarousel({ seeAllHref }: PostsCarouselInterface) {
-  const { data, loading } = useQuery<{ posts: PostItem[] }>(GET_ALL_POSTS);
+  const { language } = useLanguage();
+
+  const { data, loading, refetch } = useQuery<{ posts: PostItem[] }>(
+    POSTS_IN_LANG_LIST,
+    {
+      variables: { language },
+      notifyOnNetworkStatusChange: true,
+      fetchPolicy: "cache-and-network",
+    }
+  );
+
+  // re-fetch when language changes
+  useEffect(() => {
+    refetch({ language });
+  }, [language, refetch]);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const navigate = useNavigate();
 
-  if (loading) return <div>Loading carousel…</div>;
-  if (!data?.posts?.length) return <div>No posts found</div>;
+  if (loading && !data?.posts?.length) return <div>Loading carousel…</div>;
+  const raw = data?.posts ?? [];
+  if (!raw.length) return <div>No posts found</div>;
 
-  const posts = data.posts.map((p) => ({
+  const posts = raw.map((p) => ({
     ...p,
     postId: Number(p.postId),
+    _title: p.contentResolved?.title ?? p.title ?? "",
   }));
+
   const post = posts[currentIndex];
 
   const prevSlide = () => {
@@ -47,27 +96,7 @@ export default function PostsCarousel({ seeAllHref }: PostsCarouselInterface) {
     navigate(`/posts/${id}`);
   };
 
-  const safeTitle = safeTitleText(post.title);
-
-  // Handle touch events for mobile swipe
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStartX(e.touches[0].clientX);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX === null) return;
-    const touchEndX = e.changedTouches[0].clientX;
-    const diff = touchStartX - touchEndX;
-
-    if (Math.abs(diff) > 50) {
-      if (diff > 0) {
-        nextSlide(); // swipe left
-      } else {
-        prevSlide(); // swipe right
-      }
-    }
-    setTouchStartX(null);
-  };
+  const safeTitle = safeTitleText(post._title);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
@@ -89,12 +118,17 @@ export default function PostsCarousel({ seeAllHref }: PostsCarouselInterface) {
         )}
       </div>
 
-      {/* Carousel container */}
+      {/* Carousel */}
       <div
         className="relative w-full h-64 md:h-[450px] rounded-xl overflow-hidden cursor-pointer"
         onClick={() => goToPost(post.postId)}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
+        onTouchStart={(e) => setTouchStartX(e.touches[0].clientX)}
+        onTouchEnd={(e) => {
+          if (touchStartX === null) return;
+          const diff = touchStartX - e.changedTouches[0].clientX;
+          if (Math.abs(diff) > 50) diff > 0 ? nextSlide() : prevSlide();
+          setTouchStartX(null);
+        }}
       >
         {/* Background image */}
         <div
@@ -103,7 +137,7 @@ export default function PostsCarousel({ seeAllHref }: PostsCarouselInterface) {
             backgroundImage: `url(${post.imageUrl || "/placeholder.jpg"})`,
           }}
         >
-          {/* Overlay text block */}
+          {/* Overlay text */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex flex-col justify-end p-4">
             <div className="flex items-center justify-start text-gray-200 text-xs mb-1">
               <div className="flex items-center gap-1 mr-3">
@@ -124,7 +158,7 @@ export default function PostsCarousel({ seeAllHref }: PostsCarouselInterface) {
         {/* Left button */}
         <Button
           onClick={(e) => {
-            e.stopPropagation(); // prevent post click
+            e.stopPropagation();
             prevSlide();
           }}
           text="‹"
@@ -142,7 +176,7 @@ export default function PostsCarousel({ seeAllHref }: PostsCarouselInterface) {
         {/* Right button */}
         <Button
           onClick={(e) => {
-            e.stopPropagation(); // prevent post click
+            e.stopPropagation();
             nextSlide();
           }}
           text="›"

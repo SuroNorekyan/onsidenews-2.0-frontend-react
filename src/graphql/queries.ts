@@ -9,26 +9,43 @@ export const GET_POSTS_PAGINATED = gql`
       totalCount
       items {
         postId
-        title
+        servedLanguage
         imageUrl
-        content
         createdAt
         viewsCount
         isTop
+        contentResolved {
+          language
+          title
+          content
+          tags
+        }
+        title
+        content
+        tags
       }
     }
   }
 `;
 
 export const GET_TOP_POSTS = gql`
-  query GetTopPosts($limit: Int!) {
-    topPosts(limit: $limit) {
+  query GetTopPosts($limit: Int!, $language: LanguageCode) {
+    topPosts(limit: $limit, language: $language) {
       postId
-      title
+      servedLanguage
       imageUrl
       createdAt
       viewsCount
       isTop
+      contentResolved {
+        language
+        title
+        content
+        tags
+      }
+      title
+      content
+      tags
     }
   }
 `;
@@ -42,13 +59,79 @@ export const GET_TOP_POSTS_PAGINATED = gql`
       totalCount
       items {
         postId
-        title
+        servedLanguage
         imageUrl
-        content
         createdAt
         viewsCount
         isTop
+        contentResolved {
+          language
+          title
+          content
+          tags
+        }
+        title
+        content
+        tags
       }
+    }
+  }
+`;
+
+export const POSTS_IN_LANG_PAGINATED = gql`
+  query PostsInLangPaginated(
+    $page: Int!
+    $pageSize: Int!
+    $language: LanguageCode
+  ) {
+    postsInLangPaginated(
+      page: $page
+      pageSize: $pageSize
+      language: $language
+    ) {
+      page
+      pageSize
+      totalPages
+      totalCount
+      items {
+        postId
+        servedLanguage
+        imageUrl
+        isTop
+        createdAt
+        viewsCount
+        contentResolved {
+          language
+          title
+          content
+          tags
+        }
+        title
+        content
+        tags
+      }
+    }
+  }
+`;
+
+export const POSTS_IN_LANG_LIST = gql`
+  query Posts($language: LanguageCode) {
+    posts(language: $language) {
+      postId
+      servedLanguage
+      imageUrl
+      createdAt
+      viewsCount
+      isTop
+      contentResolved {
+        language
+        title
+        content
+        tags
+      }
+      title
+      content
+      tags
     }
   }
 `;
@@ -133,7 +216,12 @@ export const POSTS_IN_LANG = gql`
       isTop
       createdAt
       viewsCount
-      contentResolved { language title content tags }
+      contentResolved {
+        language
+        title
+        content
+        tags
+      }
     }
   }
 `;
@@ -150,7 +238,34 @@ export const POST_IN_LANG = gql`
       isTop
       createdAt
       viewsCount
-      contentResolved { language title content tags }
+      contentResolved {
+        language
+        title
+        content
+        tags
+      }
+    }
+  }
+`;
+
+export const GET_TOP_POSTS_WITH_LANG = gql`
+  query GetTopPosts($limit: Int!, $language: LanguageCode) {
+    topPosts(limit: $limit, language: $language) {
+      postId
+      servedLanguage
+      imageUrl
+      createdAt
+      viewsCount
+      isTop
+      contentResolved {
+        language
+        title
+        content
+        tags
+      }
+      title
+      content
+      tags
     }
   }
 `;

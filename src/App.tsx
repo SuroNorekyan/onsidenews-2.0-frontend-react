@@ -3,7 +3,7 @@ import { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from "./components/ui/Header";
 import PostPage from "./components/pages/PostPage";
-import HomePage from "./components/pages";
+import HomePage from "./components/pages/HomePage";
 import Footer from "./components/ui/Footer";
 import TopPostsPage from "./components/pages/TopPostsPage";
 import AdminRoute from "./auth/AdminRoute";

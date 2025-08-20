@@ -21,7 +21,6 @@ export default function Header({ darkMode, toggleDarkMode }: Props) {
   const [search, setSearch] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const [filterOpen, setFilterOpen] = useState(false);
   return (
     <div className="fixed top-0 left-0 w-full z-50 overflow-visible">
       <header
@@ -52,8 +51,6 @@ export default function Header({ darkMode, toggleDarkMode }: Props) {
             <SearchBar
               search={search}
               setSearch={setSearch}
-              filterOpen={filterOpen}
-              setFilterOpen={setFilterOpen}
               darkMode={darkMode}
             />
           </div>
@@ -68,22 +65,6 @@ export default function Header({ darkMode, toggleDarkMode }: Props) {
             />
 
             <LanguageSelect />
-
-            {/* Today’s News (no arrow) */}
-            <Button
-              text="Today’s News"
-              border="border border-red-500"
-              bgColor="bg-red-500"
-              textColor="text-white"
-              hoverBgColor="hover:bg-transparent"
-              hoverTextColor="hover:text-red-500"
-              fontWeight="bold"
-              fontSize="sm"
-              rounded="rounded-md"
-              padding="px-3 py-1"
-              darkMode={darkMode}
-              darkModeClasses="dark:hover:text-white"
-            />
           </div>
         </div>
 
@@ -108,20 +89,6 @@ export default function Header({ darkMode, toggleDarkMode }: Props) {
 
           <div className="flex items-center gap-2">
           <LanguageSelect compact />
-          <Button
-            text="Today’s News"
-            border="border border-red-500"
-            bgColor="bg-red-500"
-            textColor="text-white"
-            hoverBgColor="hover:bg-transparent"
-            hoverTextColor="hover:text-red-500"
-            fontWeight="bold"
-            fontSize="sm"
-            rounded="rounded-md"
-            padding="px-3 py-1"
-            darkMode={darkMode}
-            darkModeClasses="dark:hover:text-white"
-          />
           </div>
         </div>
 
@@ -130,8 +97,6 @@ export default function Header({ darkMode, toggleDarkMode }: Props) {
           <SearchBar
             search={search}
             setSearch={setSearch}
-            filterOpen={filterOpen}
-            setFilterOpen={setFilterOpen}
             darkMode={darkMode}
             placeholder="Search..."
           />
