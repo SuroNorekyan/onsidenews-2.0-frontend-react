@@ -165,9 +165,11 @@ export const GET_SINGLE_POST = gql`
 
 /** 🔎 Search API (works with your backend filter) */
 export const SEARCH_POSTS = gql`
-  query SearchPosts($filter: FilterPostsInput) {
-    searchPosts(filter: $filter) {
+  query SearchPosts($filter: FilterPostsInput, $language: LanguageCode) {
+    searchPosts(filter: $filter, language: $language) {
       postId
+      baseLanguage
+      servedLanguage
       title
       imageUrl
       content

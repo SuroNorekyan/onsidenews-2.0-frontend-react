@@ -9,6 +9,7 @@ interface SearchBarProps {
   setSearch: (value: string) => void;
   darkMode: boolean;
   placeholder?: string;
+  onSearch?: (value: string) => void;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -16,6 +17,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   setSearch,
   darkMode,
   placeholder = "Search matches, teams, tournaments...",
+  onSearch,
 }) => {
   return (
     <div
@@ -33,6 +35,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
         )}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && onSearch) {
+            const q = (search || "").trim();
+            if (q) onSearch(q);
+          }
+        }}
       />
       <Button
         icon={<Search size={18} />}
@@ -40,6 +48,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
         bgColor="bg-red-500"
         hoverBgColor="hover:bg-red-700"
         textColor="text-white"
+        onClick={() => {
+          if (!onSearch) return;
+          const q = (search || "").trim();
+          if (q) onSearch(q);
+        }}
       />
     </div>
   );

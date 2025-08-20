@@ -1,5 +1,6 @@
 // Header.tsx
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Menu, Sun, Moon } from "lucide-react";
 import clsx from "clsx";
 import dropdowns from "../../mocks/ui/dropdownMocks";
@@ -18,9 +19,13 @@ interface Props {
 }
 
 export default function Header({ darkMode, toggleDarkMode }: Props) {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const handleSearch = (q: string) => {
+    navigate(`/search?q=${encodeURIComponent(q)}`);
+  };
   return (
     <div className="fixed top-0 left-0 w-full z-50 overflow-visible">
       <header
@@ -52,6 +57,7 @@ export default function Header({ darkMode, toggleDarkMode }: Props) {
               search={search}
               setSearch={setSearch}
               darkMode={darkMode}
+              onSearch={handleSearch}
             />
           </div>
 
@@ -99,6 +105,7 @@ export default function Header({ darkMode, toggleDarkMode }: Props) {
             setSearch={setSearch}
             darkMode={darkMode}
             placeholder="Search..."
+            onSearch={handleSearch}
           />
         </div>
       </header>

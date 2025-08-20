@@ -7,9 +7,10 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { useAuth } from "../../auth/AuthContext";
+import { useLanguage } from "../../i18n/LanguageContext";
 import { CREATE_POST_ML, UPDATE_POST_ML, DELETE_POST } from "../../graphql/mutations";
 import {
-  GET_ALL_POSTS,
+  POSTS_IN_LANG_LIST,
   GET_POST_WITH_CONTENTS,
   SEARCH_POSTS,
   DID_YOU_MEAN,
@@ -61,6 +62,7 @@ const emptyFormML: AdminFormML = {
 export default function AdminDashboard() {
   const apollo = useApolloClient();
   const { user, logout } = useAuth();
+  const { language } = useLanguage();
 
   // --- form/edit state ---
   const [form, setForm] = useState<AdminFormML>({ ...emptyFormML });
@@ -75,7 +77,8 @@ export default function AdminDashboard() {
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   const { data, loading, refetch } = useQuery<{ posts: PostItem[] }>(
-    GET_ALL_POSTS
+    POSTS_IN_LANG_LIST,
+    { variables: { language } }
   );
 
   // Lazy search + suggestion
@@ -120,7 +123,7 @@ export default function AdminDashboard() {
 
   // ---- helpers ----
   const refreshLists = () => {
-    refetch();
+    refetch({ language });
     if (searchTerm.trim()) {
       runSearch({
         variables: {
@@ -128,6 +131,7 @@ export default function AdminDashboard() {
             containsText: searchTerm.trim(),
             sortByRelevance: "DESC",
           },
+          language,
         },
       });
       runDidYouMean({ variables: { query: searchTerm.trim() } });
@@ -229,11 +233,26 @@ export default function AdminDashboard() {
       runSearch({
         variables: {
           filter: { containsText: q, sortByRelevance: "DESC" },
+          language,
         },
       });
       runDidYouMean({ variables: { query: q } });
     }, 250);
-  }, [searchTerm, runSearch, runDidYouMean]);
+  }, [searchTerm, language, runSearch, runDidYouMean]);
+
+  // refetch the base list when language changes
+  useEffect(() => {
+    refetch({ language });
+    // also re-run search in the new language if a term exists
+    if (searchTerm.trim()) {
+      runSearch({
+        variables: {
+          filter: { containsText: searchTerm.trim(), sortByRelevance: "DESC" },
+          language,
+        },
+      });
+    }
+  }, [language]);
 
   useEffect(() => {
     setSuggestion(dymData?.didYouMean ?? null);

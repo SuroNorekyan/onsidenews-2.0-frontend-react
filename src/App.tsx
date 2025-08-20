@@ -9,6 +9,7 @@ import TopPostsPage from "./components/pages/TopPostsPage";
 import AdminRoute from "./auth/AdminRoute";
 import AdminDashboard from "./components/pages/AdminDashboard";
 import AdminLogin from "./components/pages/AdminLogin";
+import SearchResultsPage from "./components/pages/SearchResultsPage";
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
@@ -28,6 +29,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage darkMode={darkMode} />} />
             <Route path="/posts/:id" element={<PostPage />} />
+            <Route path="/search" element={<SearchResultsPage />} />
             <Route
               path="/top-posts"
               element={<TopPostsPage darkMode={darkMode} />}
