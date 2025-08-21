@@ -4,6 +4,8 @@ import { useSearchParams } from "react-router-dom";
 import PostsSection from "../posts/PostsSection";
 import Sidebar from "../posts/Sidebar";
 import PostsCarousel from "../ui/PostsCarousel";
+import SortBar from "../shared/SortBar";
+import { Search as SearchIcon, Clock, Eye } from "lucide-react";
 import Pagination from "../shared/Pagination";
 import { DID_YOU_MEAN, GET_TOP_POSTS_WITH_LANG, SEARCH_POSTS } from "../../graphql/queries";
 import { useLanguage } from "../../i18n/LanguageContext";
@@ -15,6 +17,7 @@ const SearchResultsPage: FC<{ darkMode?: boolean }> = ({ darkMode }) => {
   const [params, setParams] = useSearchParams();
   const q = (params.get("q") || "").trim();
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<"relevance" | "newest" | "views">("relevance");
 
   const [runSearch, { data: searchData, loading: searching, refetch: refetchSearch } ] = useLazyQuery(SEARCH_POSTS, {
     fetchPolicy: "network-only",
@@ -33,11 +36,13 @@ const SearchResultsPage: FC<{ darkMode?: boolean }> = ({ darkMode }) => {
   useEffect(() => {
     setPage(1);
     if (q) {
-      runSearch({ variables: { filter: { containsText: q, sortByRelevance: "DESC" }, language } });
+      const filter: any = { containsText: q };
+      if (sortKey === "relevance") filter.sortByRelevance = "DESC";
+      runSearch({ variables: { filter, language } });
       runDYM({ variables: { query: q } });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, language]);
+  }, [q, language, sortKey]);
 
   // If suggestion differs, allow user to click to accept it
   const suggestion = dymData?.didYouMean;
@@ -61,11 +66,23 @@ const SearchResultsPage: FC<{ darkMode?: boolean }> = ({ darkMode }) => {
     }));
   }, [searchData]);
 
+  const sortedItems = useMemo(() => {
+    if (sortKey === "relevance") return items; // backend handles relevance
+    const byDateDesc = (a: any, b: any) => {
+      const ad = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bd = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bd - ad;
+    };
+    const byViewsDesc = (a: any, b: any) => (b?.viewsCount ?? 0) - (a?.viewsCount ?? 0);
+    const copy = [...items];
+    return copy.sort(sortKey === "views" ? byViewsDesc : byDateDesc);
+  }, [items, sortKey]);
+
   // Client-side pagination
-  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(sortedItems.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const start = (currentPage - 1) * PAGE_SIZE;
-  const pageItems = items.slice(start, start + PAGE_SIZE);
+  const pageItems = sortedItems.slice(start, start + PAGE_SIZE);
 
   const topPosts = topData?.topPosts || [];
 
@@ -104,6 +121,16 @@ const SearchResultsPage: FC<{ darkMode?: boolean }> = ({ darkMode }) => {
             <div className="p-4 text-gray-600">No posts found.</div>
           ) : (
             <>
+              <SortBar
+                darkMode={darkMode}
+                options={[
+                  { key: "relevance", label: "Relevance", icon: <SearchIcon size={16} /> },
+                  { key: "newest", label: "Newest", icon: <Clock size={16} /> },
+                  { key: "views", label: "Most Viewed", icon: <Eye size={16} /> },
+                ]}
+                value={sortKey}
+                onChange={(k) => setSortKey(k as any)}
+              />
               <PostsSection posts={pageItems} darkMode={darkMode} selectedLang={language} />
               <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setPage} />
               <PostsCarousel seeAllHref={`/search?q=${encodeURIComponent(q)}`} />
@@ -112,11 +139,10 @@ const SearchResultsPage: FC<{ darkMode?: boolean }> = ({ darkMode }) => {
         </div>
 
         {/* RIGHT: Top posts */}
-        <Sidebar posts={topPosts} darkMode={darkMode} title="Top Posts" seeAllHref="/top-posts" />
+        <Sidebar posts={topPosts} darkMode={darkMode} title="Top Posts" seeAllHref="/top-posts" className="mt-12" />
       </div>
     </div>
   );
 };
 
 export default SearchResultsPage;
-

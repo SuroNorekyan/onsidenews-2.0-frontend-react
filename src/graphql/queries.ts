@@ -50,9 +50,9 @@ export const GET_TOP_POSTS = gql`
   }
 `;
 
-export const GET_TOP_POSTS_PAGINATED = gql`
-  query GetTopPostsPaginated($page: Int!, $pageSize: Int!) {
-    topPostsPaginated(page: $page, pageSize: $pageSize) {
+export const GET_TOP_POSTS_IN_LANG_PAGINATED = gql`
+  query GetTopPostsInLangPaginated($page: Int!, $pageSize: Int!, $language: LanguageCode) {
+    topPostsInLangPaginated(page: $page, pageSize: $pageSize, language: $language) {
       page
       pageSize
       totalPages

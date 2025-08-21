@@ -5,6 +5,8 @@ import PostsSection from "../posts/PostsSection";
 import Sidebar from "../posts/Sidebar";
 import PostsCarousel from "../ui/PostsCarousel";
 import Pagination from "../shared/Pagination";
+import SortBar from "../shared/SortBar";
+import { Clock, Eye } from "lucide-react";
 import {
   POSTS_IN_LANG_PAGINATED,
   GET_TOP_POSTS_WITH_LANG,
@@ -16,6 +18,7 @@ const PAGE_SIZE = 12;
 const HomePage: FC<{ darkMode?: boolean }> = ({ darkMode }) => {
   const { language } = useLanguage();
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<"newest" | "views">("newest");
 
   // LEFT: main list (paginated + language-aware)
   const { data, loading, error, refetch } = useQuery(POSTS_IN_LANG_PAGINATED, {
@@ -56,8 +59,25 @@ const HomePage: FC<{ darkMode?: boolean }> = ({ darkMode }) => {
       <div className="flex flex-col lg:flex-row gap-6">
         {/* LEFT */}
         <div className="flex-1 lg:w-2/3">
+          <SortBar
+            darkMode={darkMode}
+            options={[
+              { key: "newest", label: "Newest", icon: <Clock size={16} /> },
+              { key: "views", label: "Most Viewed", icon: <Eye size={16} /> },
+            ]}
+            value={sortKey}
+            onChange={(k) => setSortKey(k as any)}
+          />
           <PostsSection
-            posts={items}
+            posts={[...items].sort((a: any, b: any) => {
+              if (sortKey === "views") {
+                return (b?.viewsCount ?? 0) - (a?.viewsCount ?? 0);
+              }
+              // default: newest by createdAt desc
+              const ad = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const bd = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return bd - ad;
+            })}
             darkMode={darkMode}
             selectedLang={language}
           />
@@ -76,6 +96,7 @@ const HomePage: FC<{ darkMode?: boolean }> = ({ darkMode }) => {
           darkMode={darkMode}
           title="Top Posts"
           seeAllHref="/top-posts"
+          className="mt-12"
         />
       </div>
     </div>

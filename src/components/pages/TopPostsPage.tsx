@@ -1,4 +1,5 @@
 // src/components/pages/TopPostsPage.tsx
+import React from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@apollo/client";
 import PostsSection from "../posts/PostsSection";
@@ -6,9 +7,12 @@ import Sidebar from "../posts/Sidebar";
 import Pagination from "../shared/Pagination";
 import {
   GET_POSTS_PAGINATED,
-  GET_TOP_POSTS_PAGINATED,
+  GET_TOP_POSTS_IN_LANG_PAGINATED,
 } from "../../graphql/queries";
 import PostsCarousel from "../ui/PostsCarousel";
+import SortBar from "../shared/SortBar";
+import { Clock, Eye } from "lucide-react";
+import { useLanguage } from "../../i18n/LanguageContext";
 
 const PAGE_SIZE = 12;
 
@@ -16,14 +20,16 @@ export default function TopPostsPage({ darkMode }: { darkMode?: boolean }) {
   const [params, setParams] = useSearchParams();
   const pageFromUrl = Number(params.get("page") || 1);
   const page = Number.isNaN(pageFromUrl) || pageFromUrl < 1 ? 1 : pageFromUrl;
+  const [sortKey, setSortKey] = React.useState<"newest" | "views">("newest");
+  const { language } = useLanguage();
 
   // LEFT: Top posts paginated (primary list)
   const {
     data: topData,
     loading,
     error,
-  } = useQuery(GET_TOP_POSTS_PAGINATED, {
-    variables: { page, pageSize: PAGE_SIZE },
+  } = useQuery(GET_TOP_POSTS_IN_LANG_PAGINATED, {
+    variables: { page, pageSize: PAGE_SIZE, language },
     notifyOnNetworkStatusChange: true,
   });
 
@@ -32,9 +38,9 @@ export default function TopPostsPage({ darkMode }: { darkMode?: boolean }) {
     variables: { page: 1, pageSize: 10 },
   });
 
-  const topItems = topData?.topPostsPaginated?.items ?? [];
-  const totalPages = topData?.topPostsPaginated?.totalPages ?? 1;
-  const currentPage = topData?.topPostsPaginated?.page ?? page;
+  const topItems = topData?.topPostsInLangPaginated?.items ?? [];
+  const totalPages = topData?.topPostsInLangPaginated?.totalPages ?? 1;
+  const currentPage = topData?.topPostsInLangPaginated?.page ?? page;
 
   const sidebarAllPosts = allPage1?.postsPaginated?.items ?? [];
 
@@ -55,7 +61,26 @@ export default function TopPostsPage({ darkMode }: { darkMode?: boolean }) {
       <div className="flex flex-col lg:flex-row gap-6">
         {/* LEFT: Top posts */}
         <div className="flex-1 lg:w-2/3">
-          <PostsSection posts={topItems} darkMode={darkMode} />
+          <SortBar
+            darkMode={darkMode}
+            options={[
+              { key: "newest", label: "Newest", icon: <Clock size={16} /> },
+              { key: "views", label: "Most Viewed", icon: <Eye size={16} /> },
+            ]}
+            value={sortKey}
+            onChange={(k) => setSortKey(k as any)}
+          />
+          <PostsSection
+            posts={[...topItems].sort((a: any, b: any) => {
+              if (sortKey === "views") {
+                return (b?.viewsCount ?? 0) - (a?.viewsCount ?? 0);
+              }
+              const ad = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const bd = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return bd - ad;
+            })}
+            darkMode={darkMode}
+          />
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
@@ -70,6 +95,7 @@ export default function TopPostsPage({ darkMode }: { darkMode?: boolean }) {
           darkMode={darkMode}
           title="All Posts"
           seeAllHref="/"
+          className="mt-12"
         />
       </div>
     </div>

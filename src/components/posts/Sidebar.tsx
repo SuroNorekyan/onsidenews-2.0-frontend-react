@@ -7,6 +7,7 @@ interface SidebarProps {
   darkMode?: boolean;
   title?: string;
   seeAllHref?: string;
+  className?: string;
 }
 
 export default function Sidebar({
@@ -14,11 +15,12 @@ export default function Sidebar({
   darkMode,
   title,
   seeAllHref,
+  className,
 }: SidebarProps) {
   const navigate = useNavigate();
 
   return (
-    <div className="w-full lg:w-1/3 space-y-4">
+    <div className={`w-full lg:w-1/3 space-y-4 ${className ?? ""}`}>
       <div className="w-full h-32 bg-gray-300 rounded-lg flex items-center justify-center text-lg font-bold text-gray-700">
         ADS
       </div>
